@@ -25,10 +25,16 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const result = await seedDemoContent()
+  try {
+    const result = await seedDemoContent()
 
-  return Response.json({
-    ok: true,
-    ...result,
-  })
+    return Response.json({
+      ok: true,
+      ...result,
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+
+    return Response.json({ error: message }, { status: 500 })
+  }
 }
