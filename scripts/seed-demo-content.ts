@@ -227,7 +227,7 @@ const ensureImageFiles = async () => {
   )
 }
 
-const seed = async () => {
+export const seedDemoContent = async () => {
   await ensureImageFiles()
 
   const payload = await getPayload({ config: configPromise })
@@ -368,8 +368,17 @@ const seed = async () => {
     }
   }
 
-  console.log(`Seeded ${sections.length} sections, ${authors.length} authors, and ${articles.length} published articles.`)
+  return {
+    articles: articles.length,
+    authors: authors.length,
+    sections: sections.length,
+  }
 }
 
-await seed()
-process.exit(0)
+if (process.argv[1]?.endsWith('seed-demo-content.ts')) {
+  const result = await seedDemoContent()
+  console.log(
+    `Seeded ${result.sections} sections, ${result.authors} authors, and ${result.articles} published articles.`,
+  )
+  process.exit(0)
+}

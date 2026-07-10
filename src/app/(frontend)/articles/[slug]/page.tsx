@@ -208,6 +208,7 @@ export default async function Article({ params: paramsPromise }: Args) {
                   article={asideArticle}
                   imageSize="thumbnail"
                   key={asideArticle.id}
+                  showImage={false}
                   showSummary={false}
                 />
               ))}
