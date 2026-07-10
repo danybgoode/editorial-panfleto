@@ -1,4 +1,3 @@
-import { seedDemoContent } from '../../../../../scripts/seed-demo-content'
 import crypto from 'node:crypto'
 
 const oneTimeSeedTokenHash =
@@ -26,6 +25,7 @@ export async function POST(request: Request) {
   }
 
   try {
+    const { seedDemoContent } = await import('../../../../../scripts/seed-demo-content')
     const result = await seedDemoContent()
 
     return Response.json({
