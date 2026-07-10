@@ -21,11 +21,38 @@ import { getServerSideURL } from './utilities/getURL'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
-const hasBlobToken = Boolean(process.env.BLOB_READ_WRITE_TOKEN)
+const explicitBlobTokenEnv = process.env.BLOB_READ_WRITE_TOKEN_ENV
+const prefixedBlobTokens = Object.entries(process.env).filter(([key, value]) => {
+  return (
+    key !== 'BLOB_READ_WRITE_TOKEN' &&
+    key.endsWith('_READ_WRITE_TOKEN') &&
+    value?.startsWith('vercel_blob_rw_')
+  )
+})
+
+const resolvedBlobTokenEnv =
+  explicitBlobTokenEnv ||
+  (prefixedBlobTokens.length === 1 ? prefixedBlobTokens[0][0] : 'BLOB_READ_WRITE_TOKEN')
+const blobToken = process.env[resolvedBlobTokenEnv] || process.env.BLOB_READ_WRITE_TOKEN
+const hasBlobToken = Boolean(blobToken)
 
 if (process.env.VERCEL && !hasBlobToken) {
   throw new Error(
-    'Persistent media storage is not configured. Add a Vercel Blob store to this project, verify BLOB_READ_WRITE_TOKEN is present in the Vercel environment, then redeploy.',
+    'Persistent media storage is not configured. Add a Vercel Blob store to this project, verify BLOB_READ_WRITE_TOKEN or BLOB_READ_WRITE_TOKEN_ENV is present in the Vercel environment, then redeploy.',
+  )
+}
+
+if (process.env.VERCEL && explicitBlobTokenEnv && !process.env[explicitBlobTokenEnv]) {
+  throw new Error(
+    `Persistent media storage is misconfigured. BLOB_READ_WRITE_TOKEN_ENV points to ${explicitBlobTokenEnv}, but that environment variable is empty.`,
+  )
+}
+
+if (process.env.VERCEL && !explicitBlobTokenEnv && !process.env.BLOB_READ_WRITE_TOKEN && prefixedBlobTokens.length > 1) {
+  throw new Error(
+    `Persistent media storage is ambiguous. Found multiple prefixed Vercel Blob tokens (${prefixedBlobTokens
+      .map(([key]) => key)
+      .join(', ')}). Set BLOB_READ_WRITE_TOKEN_ENV to the token variable for the Blob store connected to this project.`,
   )
 }
 
@@ -84,7 +111,7 @@ export default buildConfig({
         media: true,
       },
       enabled: hasBlobToken,
-      token: process.env.BLOB_READ_WRITE_TOKEN,
+      token: blobToken,
     }),
   ],
   secret: process.env.PAYLOAD_SECRET,

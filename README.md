@@ -27,7 +27,8 @@ Payload admin runs at `http://localhost:3000/admin`.
 - `NEXT_PUBLIC_SERVER_URL`: public app URL, no trailing slash.
 - `CRON_SECRET`: secret for scheduled jobs.
 - `PREVIEW_SECRET`: secret for draft preview routes.
-- `BLOB_READ_WRITE_TOKEN`: Vercel Blob token. Required on Vercel.
+- `BLOB_READ_WRITE_TOKEN`: Vercel Blob token. Required on Vercel unless `BLOB_READ_WRITE_TOKEN_ENV` points to a prefixed token.
+- `BLOB_READ_WRITE_TOKEN_ENV`: optional name of a Vercel-created prefixed Blob token variable, such as `buena_READ_WRITE_TOKEN`.
 
 Never commit `.env` or production secrets.
 
@@ -74,8 +75,12 @@ Vercel Blob setup:
 1. Open the Vercel project.
 2. Go to **Storage** and add a Blob store.
 3. Connect the Blob store to this project.
-4. Confirm `BLOB_READ_WRITE_TOKEN` exists in Production, Preview, and Development environments as needed.
+4. Confirm a valid read/write token exists in Production, Preview, and Development environments as needed.
+   - Preferred: copy the active store's token into `BLOB_READ_WRITE_TOKEN`.
+   - If Vercel created prefixed variables such as `buena_READ_WRITE_TOKEN`, set `BLOB_READ_WRITE_TOKEN_ENV=buena_READ_WRITE_TOKEN`.
 5. Redeploy after adding or changing environment variables.
+
+If the admin console shows repeated CORS failures for `PUT https://vercel.com/api/blob/?pathname=...` and then reports an expired Blob token, the Payload client upload route is probably returning a token for the wrong or stale Blob store. Verify that `BLOB_READ_WRITE_TOKEN_ENV` points at the store connected to this project, or replace `BLOB_READ_WRITE_TOKEN` with the current store's read/write token.
 
 The Media collection accepts newsroom image formats, requires alt text, supports caption, credit, photographer/source, focal point selection, an admin thumbnail, and responsive sizes suitable for thumbnail, card, tablet, desktop, and social/share use. Original uploads are retained.
 
@@ -142,7 +147,7 @@ Server-side application code should use Payload's Local API via `getPayload({ co
 - Add `NEXT_PUBLIC_SERVER_URL`.
 - Add `CRON_SECRET`.
 - Add `PREVIEW_SECRET`.
-- Add Vercel Blob and confirm `BLOB_READ_WRITE_TOKEN` exists.
+- Add Vercel Blob and confirm `BLOB_READ_WRITE_TOKEN` exists, or set `BLOB_READ_WRITE_TOKEN_ENV` to the correct prefixed read/write token variable.
 - Redeploy after environment variable changes.
 - Confirm production database migrations run successfully.
 
