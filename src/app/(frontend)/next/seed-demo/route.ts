@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { seedDemoContent } = await import('../../../../../scripts/seed-demo-content')
+    const { seedDemoContent } = await import('@/endpoints/seedDemoContent')
     const result = await seedDemoContent()
 
     return Response.json({
