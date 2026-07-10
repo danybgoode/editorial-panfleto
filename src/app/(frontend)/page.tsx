@@ -147,8 +147,8 @@ export default async function HomePage() {
     <div className="newspaper-home">
       <section className="front-context ep-container" aria-label="Contexto editorial">
         <p>{formatEditorialDate(new Date().toISOString(), { weekday: 'long' })}</p>
-        <h1>{siteName}</h1>
-        <p>Lecturas para entender la vida pública, la cultura y las ideas de nuestro tiempo.</p>
+        <h1>Noticias, cultura e ideas con criterio editorial.</h1>
+        <p>Una portada compacta para leer primero lo importante y seguir el hilo del día.</p>
       </section>
 
       {breaking.docs.length > 0 && (
@@ -168,7 +168,7 @@ export default async function HomePage() {
         <section aria-label="Historia principal" className="lead-package ep-container">
           <ArticleCard
             article={lead}
-            imageSize="large"
+            imageSize="medium"
             priority
             showSummary
             variant="lead"
@@ -205,7 +205,7 @@ export default async function HomePage() {
             </SectionHeading>
             <ArticleCard
               article={featureStory}
-              imageSize="large"
+              imageSize="medium"
               showSummary
               variant="feature"
             />
@@ -251,7 +251,7 @@ export default async function HomePage() {
 export function generateMetadata(): Metadata {
   return {
     description:
-      'Editorial Panfleto publica noticias, opinión, cultura, investigación y ensayo con una mirada literaria y contemporánea.',
+      'PANFLETO publica noticias, opinión, cultura, investigación y ensayo con una mirada literaria y contemporánea.',
     title: siteName,
   }
 }

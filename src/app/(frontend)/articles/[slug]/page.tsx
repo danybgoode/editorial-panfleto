@@ -125,10 +125,10 @@ export default async function Article({ params: paramsPromise }: Args) {
         <figure className="article-hero-image ep-container">
           <Media
             imgClassName="h-full w-full object-cover"
-            preferredSize="large"
+            preferredSize="medium"
             priority
             resource={heroImage}
-            size="(max-width: 1024px) 100vw, 1180px"
+            size="(max-width: 1024px) 100vw, 960px"
           />
           {(heroImage.caption || getMediaCaption(heroImage)) && (
             <figcaption>

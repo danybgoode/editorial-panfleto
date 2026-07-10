@@ -3,7 +3,7 @@ import { getPayload } from 'payload'
 import config from '@payload-config'
 import { unstable_cache } from 'next/cache'
 
-const getArticlesSitemap = unstable_cache(
+const getSectionsSitemap = unstable_cache(
   async () => {
     const payload = await getPayload({ config })
     const SITE_URL =
@@ -14,15 +14,15 @@ const getArticlesSitemap = unstable_cache(
       'https://example.com'
 
     const results = await payload.find({
-      collection: 'articles',
+      collection: 'sections',
       overrideAccess: false,
-      draft: false,
       depth: 0,
       limit: 1000,
       pagination: false,
+      sort: 'displayOrder',
       where: {
-        _status: {
-          equals: 'published',
+        isActive: {
+          equals: true,
         },
       },
       select: {
@@ -35,23 +35,23 @@ const getArticlesSitemap = unstable_cache(
 
     const sitemap = results.docs
       ? results.docs
-          .filter((article) => Boolean(article?.slug))
-          .map((article) => ({
-            loc: `${SITE_URL}/articles/${article?.slug}`,
-            lastmod: article.updatedAt || dateFallback,
+          .filter((section) => Boolean(section?.slug))
+          .map((section) => ({
+            loc: `${SITE_URL}/sections/${section?.slug}`,
+            lastmod: section.updatedAt || dateFallback,
           }))
       : []
 
     return sitemap
   },
-  ['articles-sitemap'],
+  ['sections-sitemap'],
   {
-    tags: ['articles-sitemap'],
+    tags: ['sections-sitemap'],
   },
 )
 
 export async function GET() {
-  const sitemap = await getArticlesSitemap()
+  const sitemap = await getSectionsSitemap()
 
   return getServerSideSitemap(sitemap)
 }

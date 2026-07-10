@@ -5,7 +5,7 @@ import { getPayload } from 'payload'
 import React from 'react'
 
 import { CMSLink } from '@/components/Link'
-import { getSectionHref } from '@/utilities/editorial'
+import { getSectionHref, siteName } from '@/utilities/editorial'
 
 export async function Footer() {
   const footerData = await getCachedGlobal('footer', 1)()
@@ -30,7 +30,7 @@ export async function Footer() {
     <footer className="site-footer">
       <div className="ep-container site-footer__grid">
         <Link className="site-footer__wordmark" href="/">
-          Editorial Panfleto
+          {siteName}
         </Link>
 
         <nav aria-label="Secciones" className="site-footer__nav">
@@ -52,7 +52,7 @@ export async function Footer() {
         )}
       </div>
       <div className="ep-container site-footer__bottom">
-        <p>© {new Date().getFullYear()} Editorial Panfleto.</p>
+        <p>© {new Date().getFullYear()} {siteName}.</p>
         <p>Periodismo, ensayo y vida pública en edición digital.</p>
       </div>
     </footer>

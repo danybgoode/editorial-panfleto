@@ -16,7 +16,7 @@ import { getServerSideURL } from '@/utilities/getURL'
 const generateTitle: GenerateTitle<Article | Page> = ({ doc }) => {
   const title = doc && 'headline' in doc ? doc.headline : doc?.title
 
-  return title ? `${title} | Editorial Panfleto` : 'Editorial Panfleto'
+  return title ? `${title} | PANFLETO` : 'PANFLETO'
 }
 
 const generateURL: GenerateURL<Article | Page> = ({ doc }) => {

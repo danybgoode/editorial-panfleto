@@ -4,11 +4,12 @@ import type { Media, Page, Article, Config } from '../payload-types'
 
 import { mergeOpenGraph } from './mergeOpenGraph'
 import { getServerSideURL } from './getURL'
+import { siteName } from './editorial'
 
 const getImageURL = (image?: Media | Config['db']['defaultIDType'] | null) => {
   const serverUrl = getServerSideURL()
 
-  let url = serverUrl + '/website-template-OG.webp'
+  let url = serverUrl + '/og-default.png'
 
   if (image && typeof image === 'object' && 'url' in image) {
     const ogSize = image.sizes?.og
@@ -35,7 +36,7 @@ export const generateMeta = async (args: {
   const ogImage = getImageURL(doc?.meta?.image)
 
   const fallbackTitle = doc && 'headline' in doc ? doc.headline : doc && 'title' in doc ? doc.title : null
-  const title = `${doc?.meta?.title || fallbackTitle || 'Editorial Panfleto'} | Editorial Panfleto`
+  const title = `${doc?.meta?.title || fallbackTitle || siteName} | ${siteName}`
   const path = doc?.slug
     ? 'headline' in doc
       ? `/articles/${doc.slug}`

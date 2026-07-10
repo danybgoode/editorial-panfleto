@@ -63,6 +63,10 @@ export default async function Page() {
 
 export function generateMetadata(): Metadata {
   return {
-    title: 'Archivo | Editorial Panfleto',
+    alternates: {
+      canonical: '/articles',
+    },
+    description: 'Archivo completo de artículos publicados en PANFLETO.',
+    title: 'Archivo | PANFLETO',
   }
 }

@@ -7,44 +7,45 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Moon, Sun } from 'lucide-react'
 import React, { useState } from 'react'
 
 import type { Theme } from './types'
 
 import { useTheme } from '..'
-import { themeLocalStorageKey } from './types'
+import { defaultTheme, themeLocalStorageKey } from './types'
 
 export const ThemeSelector: React.FC = () => {
   const { setTheme } = useTheme()
   const [value, setValue] = useState('')
 
-  const onThemeChange = (themeToSet: Theme & 'auto') => {
-    if (themeToSet === 'auto') {
-      setTheme(null)
-      setValue('auto')
-    } else {
-      setTheme(themeToSet)
-      setValue(themeToSet)
-    }
+  const onThemeChange = (themeToSet: Theme) => {
+    setTheme(themeToSet)
+    setValue(themeToSet)
   }
 
   React.useEffect(() => {
     const preference = window.localStorage.getItem(themeLocalStorageKey)
-    setValue(preference ?? 'auto')
+    setValue(preference ?? defaultTheme)
   }, [])
 
   return (
     <Select onValueChange={onThemeChange} value={value}>
       <SelectTrigger
-        aria-label="Select a theme"
-        className="w-auto bg-transparent gap-2 pl-0 md:pl-3 border-none"
+        aria-label="Elegir tema"
+        className="theme-select"
       >
-        <SelectValue placeholder="Theme" />
+        <SelectValue placeholder="Tema" />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="auto">Auto</SelectItem>
-        <SelectItem value="light">Light</SelectItem>
-        <SelectItem value="dark">Dark</SelectItem>
+        <SelectItem value="light">
+          <Sun aria-hidden />
+          Claro
+        </SelectItem>
+        <SelectItem value="dark">
+          <Moon aria-hidden />
+          Oscuro
+        </SelectItem>
       </SelectContent>
     </Select>
   )

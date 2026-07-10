@@ -1,7 +1,7 @@
 import type { Article, Author, Media, Section } from '@/payload-types'
 import { getServerSideURL } from './getURL'
 
-export const siteName = 'Editorial Panfleto'
+export const siteName = 'PANFLETO'
 
 export const articleTypes: Record<Article['articleType'], string> = {
   editorial: 'Editorial',

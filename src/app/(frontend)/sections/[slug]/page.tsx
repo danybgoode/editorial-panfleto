@@ -156,7 +156,15 @@ export async function generateMetadata({ params }: Args): Promise<Metadata> {
   const section = result.docs[0]
 
   return {
+    alternates: {
+      canonical: section ? getSectionHref(section) : '/',
+    },
     description: section?.description || `Artículos de ${section?.name || 'sección'} en ${siteName}.`,
+    openGraph: {
+      description: section?.description || `Artículos de ${section?.name || 'sección'} en ${siteName}.`,
+      title: section ? `${section.name} | ${siteName}` : siteName,
+      url: section ? getSectionHref(section) : '/',
+    },
     title: section ? `${section.name} | ${siteName}` : siteName,
   }
 }

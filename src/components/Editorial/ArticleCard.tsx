@@ -62,8 +62,8 @@ export function ArticleCard({
             resource={image}
             size={
               variant === 'lead'
-                ? '(max-width: 768px) 100vw, 58vw'
-                : '(max-width: 768px) 35vw, 24vw'
+                ? '(max-width: 768px) 100vw, 50vw'
+                : '(max-width: 768px) 42vw, 22vw'
             }
           />
         </Link>

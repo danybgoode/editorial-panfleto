@@ -1,4 +1,4 @@
-# Editorial Panfleto
+# PANFLETO
 
 Payload CMS and Next.js for a reader-facing digital newspaper. Payload owns authentication, access control, migrations, editorial workflow, REST/GraphQL APIs, and the integrated admin UI.
 

@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
 
 import type { Header, Section } from '@/payload-types'
+import { siteName } from '@/utilities/editorial'
 
 import { HeaderNav } from './Nav'
 
@@ -38,7 +39,7 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({ data, dateLabel, sec
       </div>
       <div className="site-header__masthead ep-container">
         <Link className="site-wordmark" href="/">
-          Editorial Panfleto
+          {siteName}
         </Link>
       </div>
       <HeaderNav data={data} sections={sections} />

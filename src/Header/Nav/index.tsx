@@ -8,6 +8,7 @@ import { CMSLink } from '@/components/Link'
 import Link from 'next/link'
 import { Menu, SearchIcon, X } from 'lucide-react'
 import { getSectionHref } from '@/utilities/editorial'
+import { ThemeSelector } from '@/providers/Theme/ThemeSelector'
 
 export const HeaderNav: React.FC<{ data: HeaderType; sections: Section[] }> = ({
   data,
@@ -32,19 +33,22 @@ export const HeaderNav: React.FC<{ data: HeaderType; sections: Section[] }> = ({
     <div className="site-nav-wrap">
       <nav aria-label="Secciones principales" className="site-nav ep-container">
         <div className="site-nav__links">{nav}</div>
-        <Link className="site-nav__search" href="/search">
-          <span className="sr-only">Buscar</span>
-          <SearchIcon aria-hidden className="w-5" />
-        </Link>
-        <button
-          aria-expanded={open}
-          aria-label={open ? 'Cerrar navegación' : 'Abrir navegación'}
-          className="site-nav__menu"
-          onClick={() => setOpen((value) => !value)}
-          type="button"
-        >
-          {open ? <X aria-hidden className="w-5" /> : <Menu aria-hidden className="w-5" />}
-        </button>
+        <div className="site-nav__tools">
+          <ThemeSelector />
+          <Link className="site-nav__search" href="/search">
+            <span className="sr-only">Buscar</span>
+            <SearchIcon aria-hidden className="w-5" />
+          </Link>
+          <button
+            aria-expanded={open}
+            aria-label={open ? 'Cerrar navegación' : 'Abrir navegación'}
+            className="site-nav__menu"
+            onClick={() => setOpen((value) => !value)}
+            type="button"
+          >
+            {open ? <X aria-hidden className="w-5" /> : <Menu aria-hidden className="w-5" />}
+          </button>
+        </div>
       </nav>
       <nav aria-label="Navegación móvil" className={open ? 'mobile-nav is-open' : 'mobile-nav'}>
         <div className="ep-container">

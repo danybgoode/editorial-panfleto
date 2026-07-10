@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="PANFLETO">
+  <rect width="160" height="160" rx="16" fill="#11100f"/>
+  <rect x="1" y="1" width="158" height="158" rx="15" fill="none" stroke="#f4efe8" stroke-width="2"/>
+  <text x="80" y="113" fill="#f4efe8" font-family="Georgia, 'Times New Roman', serif" font-size="108" font-weight="700" text-anchor="middle">P</text>
+</svg>
