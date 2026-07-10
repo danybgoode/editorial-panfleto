@@ -24,7 +24,9 @@ const dirname = path.dirname(filename)
 const hasBlobToken = Boolean(process.env.BLOB_READ_WRITE_TOKEN)
 
 if (process.env.VERCEL && !hasBlobToken) {
-  throw new Error('Missing BLOB_READ_WRITE_TOKEN. Add Vercel Blob storage to the project before deploying.')
+  throw new Error(
+    'Persistent media storage is not configured. Add a Vercel Blob store to this project, verify BLOB_READ_WRITE_TOKEN is present in the Vercel environment, then redeploy.',
+  )
 }
 
 export default buildConfig({

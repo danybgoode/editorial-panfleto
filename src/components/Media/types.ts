@@ -13,6 +13,7 @@ export interface Props {
   onClick?: () => void
   onLoad?: () => void
   loading?: 'lazy' | 'eager' // for NextImage only
+  preferredSize?: 'thumbnail' | 'square' | 'small' | 'medium' | 'large' | 'xlarge' | 'og'
   priority?: boolean // for NextImage only
   ref?: Ref<HTMLImageElement | HTMLVideoElement | null>
   resource?: MediaType | string | number | null // for Payload media

@@ -51,9 +51,11 @@ export const Media: CollectionConfig = {
     },
   ],
   upload: {
-    // Upload to the public/media directory in Next.js making them publicly accessible even outside of Payload
+    // Local fallback for development. The Vercel Blob adapter disables local storage when enabled.
     staticDir: path.resolve(dirname, '../../public/media'),
+    mimeTypes: ['image/avif', 'image/gif', 'image/jpeg', 'image/png', 'image/webp'],
     adminThumbnail: 'thumbnail',
+    displayPreview: true,
     focalPoint: true,
     imageSizes: [
       {
