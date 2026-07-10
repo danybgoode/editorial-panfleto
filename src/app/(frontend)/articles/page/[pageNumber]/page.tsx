@@ -1,13 +1,14 @@
 import type { Metadata } from 'next/types'
 
-import { CollectionArchive } from '@/components/CollectionArchive'
-import { PageRange } from '@/components/PageRange'
+import { ArticleCard } from '@/components/Editorial/ArticleCard'
+import { SectionHeading } from '@/components/Editorial/SectionHeading'
 import { Pagination } from '@/components/Pagination'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 import React from 'react'
 import PageClient from './page.client'
 import { notFound } from 'next/navigation'
+import type { Article } from '@/payload-types'
 
 export const revalidate = 600
 
@@ -31,33 +32,26 @@ export default async function Page({ params: paramsPromise }: Args) {
     limit: 12,
     page: sanitizedPageNumber,
     overrideAccess: false,
+    sort: '-publishedAt',
   })
 
   return (
-    <div className="pt-24 pb-24">
+    <div className="archive-page ep-container">
       <PageClient />
-      <div className="container mb-16">
-        <div className="prose dark:prose-invert max-w-none">
-          <h1>Articles</h1>
-        </div>
+      <header className="archive-header">
+        <SectionHeading eyebrow="Archivo">Todos los artículos</SectionHeading>
+        <p>Página {articles.page} de {articles.totalPages}</p>
+      </header>
+
+      <div className="archive-list">
+        {(articles.docs as Article[]).map((article) => (
+          <ArticleCard article={article} key={article.id} variant="stream" />
+        ))}
       </div>
 
-      <div className="container mb-8">
-        <PageRange
-          collection="articles"
-          currentPage={articles.page}
-          limit={12}
-          totalDocs={articles.totalDocs}
-        />
-      </div>
-
-      <CollectionArchive articles={articles.docs} />
-
-      <div className="container">
-        {articles?.page && articles?.totalPages > 1 && (
-          <Pagination page={articles.page} totalPages={articles.totalPages} />
-        )}
-      </div>
+      {articles?.page && articles?.totalPages > 1 && (
+        <Pagination page={articles.page} totalPages={articles.totalPages} />
+      )}
     </div>
   )
 }
@@ -65,7 +59,7 @@ export default async function Page({ params: paramsPromise }: Args) {
 export async function generateMetadata({ params: paramsPromise }: Args): Promise<Metadata> {
   const { pageNumber } = await paramsPromise
   return {
-    title: `Payload Website Template Articles Page ${pageNumber || ''}`,
+    title: `Archivo, página ${pageNumber || ''} | Editorial Panfleto`,
   }
 }
 

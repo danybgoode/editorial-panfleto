@@ -1,12 +1,13 @@
 import type { Metadata } from 'next/types'
 
-import { CollectionArchive } from '@/components/CollectionArchive'
+import { ArticleCard } from '@/components/Editorial/ArticleCard'
+import { SectionHeading } from '@/components/Editorial/SectionHeading'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 import React from 'react'
 import { Search } from '@/search/Component'
 import PageClient from './page.client'
-import { CardArticleData } from '@/components/Card'
+import type { Article } from '@/payload-types'
 
 type Args = {
   searchParams: Promise<{
@@ -21,9 +22,16 @@ export default async function Page({ searchParams: searchParamsPromise }: Args) 
     collection: 'articles',
     depth: 1,
     limit: 12,
+    overrideAccess: false,
+    sort: '-publishedAt',
     select: {
+      articleType: true,
+      author: true,
+      coAuthors: true,
       featuredImage: true,
       headline: true,
+      populatedAuthors: true,
+      publishedAt: true,
       slug: true,
       section: true,
       summary: true,
@@ -62,22 +70,23 @@ export default async function Page({ searchParams: searchParamsPromise }: Args) 
   })
 
   return (
-    <div className="pt-24 pb-24">
+    <div className="search-page ep-container">
       <PageClient />
-      <div className="container mb-16">
-        <div className="prose dark:prose-invert max-w-none text-center">
-          <h1 className="mb-8 lg:mb-16">Search</h1>
-
-          <div className="max-w-[50rem] mx-auto">
-            <Search />
-          </div>
-        </div>
-      </div>
+      <header className="archive-header">
+        <SectionHeading eyebrow="Buscar">Archivo público</SectionHeading>
+        <Search />
+      </header>
 
       {articles.totalDocs > 0 ? (
-        <CollectionArchive articles={articles.docs as CardArticleData[]} />
+        <div className="archive-list">
+          {(articles.docs as Article[]).map((article) => (
+            <ArticleCard article={article} key={article.id} variant="stream" />
+          ))}
+        </div>
       ) : (
-        <div className="container">No results found.</div>
+        <div className="empty-state">
+          <p>{query ? 'No encontramos resultados publicados.' : 'Escribe una palabra para buscar.'}</p>
+        </div>
       )}
     </div>
   )
@@ -85,6 +94,6 @@ export default async function Page({ searchParams: searchParamsPromise }: Args) 
 
 export function generateMetadata(): Metadata {
   return {
-    title: `Payload Website Template Search`,
+    title: 'Buscar | Editorial Panfleto',
   }
 }

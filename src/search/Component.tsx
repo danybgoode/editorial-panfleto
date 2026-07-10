@@ -16,24 +16,24 @@ export const Search: React.FC = () => {
   }, [debouncedValue, router])
 
   return (
-    <div>
+    <div className="search-form">
       <form
         onSubmit={(e) => {
           e.preventDefault()
         }}
       >
         <Label htmlFor="search" className="sr-only">
-          Search
+          Buscar artículos
         </Label>
         <Input
           id="search"
           onChange={(event) => {
             setValue(event.target.value)
           }}
-          placeholder="Search"
+          placeholder="Buscar por título, tema o palabra clave"
         />
         <button type="submit" className="sr-only">
-          submit
+          Buscar
         </button>
       </form>
     </div>

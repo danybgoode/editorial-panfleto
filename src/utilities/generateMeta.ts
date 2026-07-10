@@ -13,7 +13,12 @@ const getImageURL = (image?: Media | Config['db']['defaultIDType'] | null) => {
   if (image && typeof image === 'object' && 'url' in image) {
     const ogUrl = image.sizes?.og?.url
 
-    url = ogUrl ? serverUrl + ogUrl : serverUrl + image.url
+    const imageUrl = ogUrl || image.url
+    if (imageUrl?.startsWith('http://') || imageUrl?.startsWith('https://')) {
+      url = imageUrl
+    } else if (imageUrl) {
+      url = serverUrl + imageUrl
+    }
   }
 
   return url
@@ -28,8 +33,23 @@ export const generateMeta = async (args: {
 
   const fallbackTitle = doc && 'headline' in doc ? doc.headline : doc && 'title' in doc ? doc.title : null
   const title = `${doc?.meta?.title || fallbackTitle || 'Editorial Panfleto'} | Editorial Panfleto`
+  const path = doc?.slug
+    ? 'headline' in doc
+      ? `/articles/${doc.slug}`
+      : doc.slug === 'home'
+        ? '/'
+        : `/${doc.slug}`
+    : '/'
+  const canonical =
+    doc && 'canonicalURL' in doc && typeof doc.canonicalURL === 'string'
+      ? doc.canonicalURL
+      : undefined
+  const metaURL = canonical || path
 
   return {
+    alternates: {
+      canonical: metaURL,
+    },
     description: doc?.meta?.description,
     openGraph: mergeOpenGraph({
       description: doc?.meta?.description || '',
@@ -41,7 +61,7 @@ export const generateMeta = async (args: {
           ]
         : undefined,
       title,
-      url: Array.isArray(doc?.slug) ? doc?.slug.join('/') : '/',
+      url: metaURL,
     }),
     title,
   }

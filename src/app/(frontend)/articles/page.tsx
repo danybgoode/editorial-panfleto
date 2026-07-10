@@ -1,12 +1,13 @@
 import type { Metadata } from 'next/types'
 
-import { CollectionArchive } from '@/components/CollectionArchive'
-import { PageRange } from '@/components/PageRange'
+import { ArticleCard } from '@/components/Editorial/ArticleCard'
+import { SectionHeading } from '@/components/Editorial/SectionHeading'
 import { Pagination } from '@/components/Pagination'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 import React from 'react'
 import PageClient from './page.client'
+import type { Article } from '@/payload-types'
 
 export const dynamic = 'force-static'
 export const revalidate = 600
@@ -19,9 +20,15 @@ export default async function Page() {
     depth: 1,
     limit: 12,
     overrideAccess: false,
+    sort: '-publishedAt',
     select: {
+      articleType: true,
+      author: true,
+      coAuthors: true,
       featuredImage: true,
       headline: true,
+      populatedAuthors: true,
+      publishedAt: true,
       slug: true,
       section: true,
       summary: true,
@@ -30,36 +37,32 @@ export default async function Page() {
   })
 
   return (
-    <div className="pt-24 pb-24">
+    <div className="archive-page ep-container">
       <PageClient />
-      <div className="container mb-16">
-        <div className="prose dark:prose-invert max-w-none">
-          <h1>Articles</h1>
-        </div>
+      <header className="archive-header">
+        <SectionHeading eyebrow="Archivo">Todos los artículos</SectionHeading>
+        <p>
+          {articles.totalDocs > 0
+            ? `${articles.totalDocs} artículos publicados`
+            : 'Aún no hay artículos publicados.'}
+        </p>
+      </header>
+
+      <div className="archive-list">
+        {(articles.docs as Article[]).map((article) => (
+          <ArticleCard article={article} key={article.id} variant="stream" />
+        ))}
       </div>
 
-      <div className="container mb-8">
-        <PageRange
-          collection="articles"
-          currentPage={articles.page}
-          limit={12}
-          totalDocs={articles.totalDocs}
-        />
-      </div>
-
-      <CollectionArchive articles={articles.docs} />
-
-      <div className="container">
-        {articles.totalPages > 1 && articles.page && (
-          <Pagination page={articles.page} totalPages={articles.totalPages} />
-        )}
-      </div>
+      {articles.totalPages > 1 && articles.page && (
+        <Pagination page={articles.page} totalPages={articles.totalPages} />
+      )}
     </div>
   )
 }
 
 export function generateMetadata(): Metadata {
   return {
-    title: `Payload Website Template Articles`,
+    title: 'Archivo | Editorial Panfleto',
   }
 }

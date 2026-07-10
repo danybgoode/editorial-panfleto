@@ -1,31 +1,59 @@
 import { getCachedGlobal } from '@/utilities/getGlobals'
+import configPromise from '@payload-config'
 import Link from 'next/link'
+import { getPayload } from 'payload'
 import React from 'react'
 
-import { ThemeSelector } from '@/providers/Theme/ThemeSelector'
 import { CMSLink } from '@/components/Link'
-import { Logo } from '@/components/Logo/Logo'
+import { getSectionHref } from '@/utilities/editorial'
 
 export async function Footer() {
   const footerData = await getCachedGlobal('footer', 1)()
+  const payload = await getPayload({ config: configPromise })
+  const sections = await payload.find({
+    collection: 'sections',
+    depth: 0,
+    limit: 8,
+    overrideAccess: false,
+    pagination: false,
+    sort: 'displayOrder',
+    where: {
+      isActive: {
+        equals: true,
+      },
+    },
+  })
 
   const navItems = footerData?.navItems || []
 
   return (
-    <footer className="mt-auto border-t border-border bg-black dark:bg-card text-white">
-      <div className="container py-8 gap-8 flex flex-col md:flex-row md:justify-between">
-        <Link className="flex items-center" href="/">
-          <Logo />
+    <footer className="site-footer">
+      <div className="ep-container site-footer__grid">
+        <Link className="site-footer__wordmark" href="/">
+          Editorial Panfleto
         </Link>
 
-        <div className="flex flex-col-reverse items-start md:flex-row gap-4 md:items-center">
-          <ThemeSelector />
-          <nav className="flex flex-col md:flex-row gap-4">
+        <nav aria-label="Secciones" className="site-footer__nav">
+          <h2>Secciones</h2>
+          {sections.docs.map((section) => (
+            <Link href={getSectionHref(section)} key={section.id}>
+              {section.name}
+            </Link>
+          ))}
+        </nav>
+
+        {navItems.length > 0 && (
+          <nav aria-label="Información" className="site-footer__nav">
+            <h2>Información</h2>
             {navItems.map(({ link }, i) => {
-              return <CMSLink className="text-white" key={i} {...link} />
+              return <CMSLink key={i} {...link} />
             })}
           </nav>
-        </div>
+        )}
+      </div>
+      <div className="ep-container site-footer__bottom">
+        <p>© {new Date().getFullYear()} Editorial Panfleto.</p>
+        <p>Periodismo, ensayo y vida pública en edición digital.</p>
       </div>
     </footer>
   )
