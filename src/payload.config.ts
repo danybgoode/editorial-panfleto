@@ -1,4 +1,5 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
+import { resendAdapter } from '@payloadcms/email-resend'
 import { s3Storage } from '@payloadcms/storage-s3'
 import sharp from 'sharp'
 import path from 'path'
@@ -92,6 +93,11 @@ export default buildConfig({
     pool: {
       connectionString: process.env.DATABASE_URL || '',
     },
+  }),
+  email: resendAdapter({
+    defaultFromAddress: process.env.RESEND_FROM_ADDRESS || 'onboarding@resend.dev',
+    defaultFromName: 'PANFLETO',
+    apiKey: process.env.RESEND_API_KEY || '',
   }),
   collections: [Users, Media, Articles, Authors, Sections, Tags, Issues, Pages],
   cors: [getServerSideURL()].filter(Boolean),

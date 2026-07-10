@@ -50,6 +50,19 @@ type Args = {
   }>
 }
 
+const articleSelect = {
+  articleType: true,
+  author: true,
+  coAuthors: true,
+  featuredImage: true,
+  headline: true,
+  populatedAuthors: true,
+  publishedAt: true,
+  section: true,
+  slug: true,
+  summary: true,
+} as const
+
 export default async function Article({ params: paramsPromise }: Args) {
   const { isEnabled: draft } = await draftMode()
   const { slug = '' } = await paramsPromise
@@ -64,6 +77,24 @@ export default async function Article({ params: paramsPromise }: Args) {
   const authors = getArticleAuthors(article)
   const heroImage = typeof article.featuredImage === 'object' ? article.featuredImage : null
   const related = article.relatedArticles?.filter((doc) => typeof doc === 'object') || []
+  const payload = await getPayload({ config: configPromise })
+  const latest = await payload.find({
+    collection: 'articles',
+    depth: 2,
+    limit: 5,
+    overrideAccess: false,
+    pagination: false,
+    select: articleSelect,
+    sort: '-publishedAt',
+    where: {
+      id: {
+        not_equals: article.id,
+      },
+    },
+  })
+  const asideStories = (
+    related.length > 0 ? related : (latest.docs as ArticleType[])
+  ).slice(0, 4) as ArticleType[]
   const minutes = estimateReadingTime(article.body)
   const articleURL = `${getServerSideURL()}${getArticleHref(article)}`
   const isOpinion = article.articleType === 'opinion' || article.articleType === 'editorial'
@@ -167,6 +198,22 @@ export default async function Article({ params: paramsPromise }: Args) {
         <div className="article-body-wrap">
           <RichText data={article.body} enableGutter={false} />
         </div>
+
+        {asideStories.length > 0 && (
+          <aside aria-label="Más para leer" className="article-aside news-rail">
+            <h2>{related.length > 0 ? 'Lecturas relacionadas' : 'Últimas noticias'}</h2>
+            <div>
+              {asideStories.map((asideArticle) => (
+                <ArticleCard
+                  article={asideArticle}
+                  imageSize="thumbnail"
+                  key={asideArticle.id}
+                  showSummary={false}
+                />
+              ))}
+            </div>
+          </aside>
+        )}
       </div>
 
       {related.length > 0 && (

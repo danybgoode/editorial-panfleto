@@ -79,22 +79,37 @@ export default async function SectionPage({ params, searchParams }: Args) {
 
   if (!section || section.isActive === false) notFound()
 
-  const articles = await payload.find({
-    collection: 'articles',
-    depth: 2,
-    limit: 12,
-    overrideAccess: false,
-    page: pageNumber,
-    select: articleSelect,
-    sort: '-publishedAt',
-    where: {
-      section: {
-        equals: section.id,
+  const [articles, latest] = await Promise.all([
+    payload.find({
+      collection: 'articles',
+      depth: 2,
+      limit: 12,
+      overrideAccess: false,
+      page: pageNumber,
+      select: articleSelect,
+      sort: '-publishedAt',
+      where: {
+        section: {
+          equals: section.id,
+        },
       },
-    },
-  })
+    }),
+    payload.find({
+      collection: 'articles',
+      depth: 2,
+      limit: 6,
+      overrideAccess: false,
+      pagination: false,
+      select: articleSelect,
+      sort: '-publishedAt',
+    }),
+  ])
 
   const [lead, ...rest] = articles.docs as Article[]
+  const middleStories =
+    pageNumber === 1 ? rest.slice(0, 3) : (articles.docs as Article[]).slice(0, 3)
+  const riverStories = pageNumber === 1 ? rest.slice(3) : (articles.docs as Article[]).slice(3)
+  const latestStories = (latest.docs as Article[]).filter((article) => article.id !== lead?.id)
 
   return (
     <div className="section-page ep-container">
@@ -106,13 +121,40 @@ export default async function SectionPage({ params, searchParams }: Args) {
       {lead ? (
         <>
           {pageNumber === 1 && (
-            <ArticleCard article={lead} imageSize="large" priority showSummary variant="lead" />
+            <section aria-label="Portada de sección" className="section-front">
+              <ArticleCard article={lead} imageSize="medium" priority showSummary variant="lead" />
+              <div className="section-front__stack">
+                {middleStories.map((article) => (
+                  <ArticleCard
+                    article={article}
+                    key={article.id}
+                    showImage={false}
+                    showSummary
+                  />
+                ))}
+              </div>
+              <aside aria-label="Últimas noticias" className="news-rail">
+                <h2>Últimas noticias</h2>
+                <div>
+                  {latestStories.slice(0, 5).map((article) => (
+                    <ArticleCard
+                      article={article}
+                      imageSize="thumbnail"
+                      key={article.id}
+                      showSummary={false}
+                    />
+                  ))}
+                </div>
+              </aside>
+            </section>
           )}
-          <div className="archive-list">
-            {(pageNumber === 1 ? rest : (articles.docs as Article[])).map((article) => (
-              <ArticleCard article={article} key={article.id} variant="stream" />
-            ))}
-          </div>
+          {riverStories.length > 0 && (
+            <div className="archive-list section-river">
+              {riverStories.map((article) => (
+                <ArticleCard article={article} key={article.id} variant="stream" />
+              ))}
+            </div>
+          )}
         </>
       ) : (
         <div className="empty-state">

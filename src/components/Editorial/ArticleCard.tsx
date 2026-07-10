@@ -18,6 +18,7 @@ type ArticleCardProps = {
   className?: string
   imageSize?: 'thumbnail' | 'square' | 'small' | 'medium' | 'large' | 'xlarge'
   priority?: boolean
+  showImage?: boolean
   showSummary?: boolean
   variant?: 'lead' | 'compact' | 'feature' | 'stream'
 }
@@ -27,6 +28,7 @@ export function ArticleCard({
   className,
   imageSize = 'medium',
   priority,
+  showImage = true,
   showSummary = true,
   variant = 'compact',
 }: ArticleCardProps) {
@@ -48,7 +50,7 @@ export function ArticleCard({
         className,
       )}
     >
-      {image && (
+      {showImage && image && (
         <Link
           aria-label={article.headline}
           className="editorial-card__image"
