@@ -1,23 +1,31 @@
-import { vercelPostgresAdapter } from '@payloadcms/db-vercel-postgres'
+import { postgresAdapter } from '@payloadcms/db-postgres'
+import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
 import sharp from 'sharp'
 import path from 'path'
 import { buildConfig, PayloadRequest } from 'payload'
 import { fileURLToPath } from 'url'
 
-import { Categories } from './collections/Categories'
+import { Articles } from './collections/Articles'
+import { Authors } from './collections/Authors'
+import { Issues } from './collections/Issues'
 import { Media } from './collections/Media'
 import { Pages } from './collections/Pages'
-import { Posts } from './collections/Posts'
+import { Sections } from './collections/Sections'
+import { Tags } from './collections/Tags'
 import { Users } from './collections/Users'
 import { Footer } from './Footer/config'
 import { Header } from './Header/config'
 import { plugins } from './plugins'
 import { defaultLexical } from '@/fields/defaultLexical'
 import { getServerSideURL } from './utilities/getURL'
-import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
+const hasBlobToken = Boolean(process.env.BLOB_READ_WRITE_TOKEN)
+
+if (process.env.VERCEL && !hasBlobToken) {
+  throw new Error('Missing BLOB_READ_WRITE_TOKEN. Add Vercel Blob storage to the project before deploying.')
+}
 
 export default buildConfig({
   admin: {
@@ -58,36 +66,25 @@ export default buildConfig({
   },
   // This config helps us configure global or default features that the other editors can inherit
   editor: defaultLexical,
-  db: vercelPostgresAdapter({
+  db: postgresAdapter({
     pool: {
-      connectionString: process.env.POSTGRES_URL || '',
+      connectionString: process.env.DATABASE_URL || '',
     },
   }),
-  collections: [
-    {
-      slug: 'folders',
-      folders: true,
-      admin: {
-        useAsTitle: 'name',
-      },
-      fields: [
-        {
-          name: 'name',
-          type: 'text',
-          required: true,
-          label: 'Folder Name',
-        },
-      ],
-    },
-    Pages,
-    Posts,
-    Media,
-    Categories,
-    Users,
-  ],
+  collections: [Users, Media, Articles, Authors, Sections, Tags, Issues, Pages],
   cors: [getServerSideURL()].filter(Boolean),
-  plugins: [...plugins],
   globals: [Header, Footer],
+  plugins: [
+    ...plugins,
+    vercelBlobStorage({
+      clientUploads: true,
+      collections: {
+        media: true,
+      },
+      enabled: hasBlobToken,
+      token: process.env.BLOB_READ_WRITE_TOKEN,
+    }),
+  ],
   secret: process.env.PAYLOAD_SECRET,
   sharp,
   typescript: {
@@ -111,12 +108,4 @@ export default buildConfig({
     },
     tasks: [],
   },
-  storage: [
-    vercelBlobStorage({
-      collections: {
-        media: true,
-      },
-      token: process.env.BLOB_READ_WRITE_TOKEN || '',
-    }),
-  ],
 })

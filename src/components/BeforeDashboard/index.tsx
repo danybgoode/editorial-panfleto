@@ -1,7 +1,6 @@
 import { Banner } from '@payloadcms/ui/elements/Banner'
 import React from 'react'
 
-import { SeedButton } from './SeedButton'
 import './index.scss'
 
 const baseClass = 'before-dashboard'
@@ -15,8 +14,7 @@ const BeforeDashboard: React.FC = () => {
       Here&apos;s what to do next:
       <ul className={`${baseClass}__instructions`}>
         <li>
-          <SeedButton />
-          {' with a few pages, posts, and projects to jump-start your new site, then '}
+          {'Create sections, authors, and your first articles, then '}
           <a href="/" target="_blank">
             visit your website
           </a>

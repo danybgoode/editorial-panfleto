@@ -1,4 +1,4 @@
-import type { Post, ArchiveBlock as ArchiveBlockProps } from '@/payload-types'
+import type { Article, ArchiveBlock as ArchiveBlockProps } from '@/payload-types'
 
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
@@ -12,43 +12,43 @@ export const ArchiveBlock: React.FC<
     id?: string
   }
 > = async (props) => {
-  const { id, categories, introContent, limit: limitFromProps, populateBy, selectedDocs } = props
+  const { id, sections, introContent, limit: limitFromProps, populateBy, selectedDocs } = props
 
   const limit = limitFromProps || 3
 
-  let posts: Post[] = []
+  let articles: Article[] = []
 
   if (populateBy === 'collection') {
     const payload = await getPayload({ config: configPromise })
 
-    const flattenedCategories = categories?.map((category) => {
-      if (typeof category === 'object') return category.id
-      else return category
+    const flattenedSections = sections?.map((section) => {
+      if (typeof section === 'object') return section.id
+      else return section
     })
 
-    const fetchedPosts = await payload.find({
-      collection: 'posts',
+    const fetchedArticles = await payload.find({
+      collection: 'articles',
       depth: 1,
       limit,
-      ...(flattenedCategories && flattenedCategories.length > 0
+      ...(flattenedSections && flattenedSections.length > 0
         ? {
             where: {
-              categories: {
-                in: flattenedCategories,
+              section: {
+                in: flattenedSections,
               },
             },
           }
         : {}),
     })
 
-    posts = fetchedPosts.docs
+    articles = fetchedArticles.docs
   } else {
     if (selectedDocs?.length) {
-      const filteredSelectedPosts = selectedDocs.map((post) => {
-        if (typeof post.value === 'object') return post.value
-      }) as Post[]
+      const filteredSelectedArticles = selectedDocs.map((article) => {
+        if (typeof article.value === 'object') return article.value
+      }) as Article[]
 
-      posts = filteredSelectedPosts
+      articles = filteredSelectedArticles
     }
   }
 
@@ -59,7 +59,7 @@ export const ArchiveBlock: React.FC<
           <RichText className="ms-0 max-w-[48rem]" data={introContent} enableGutter={false} />
         </div>
       )}
-      <CollectionArchive posts={posts} />
+      <CollectionArchive articles={articles} />
     </div>
   )
 }

@@ -1,8 +1,5 @@
 {
-  "crons": [
-    {
-      "path": "/api/payload-jobs/run",
-      "schedule": "0 0 * * *"
-    }
-  ]
+  "framework": "nextjs",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm payload migrate && pnpm build"
 }

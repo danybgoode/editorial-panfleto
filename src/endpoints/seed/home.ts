@@ -20,8 +20,8 @@ export const home: (args: HomeArgs) => RequiredDataFromCollectionSlug<'pages'> =
           link: {
             type: 'custom',
             appearance: 'default',
-            label: 'All posts',
-            url: '/posts',
+            label: 'All articles',
+            url: '/articles',
           },
         },
         {
@@ -109,7 +109,7 @@ export const home: (args: HomeArgs) => RequiredDataFromCollectionSlug<'pages'> =
                   fields: {
                     linkType: 'custom',
                     newTab: true,
-                    url: 'https://github.com/payloadcms/payload/tree/main/templates/website',
+                    url: 'https://github.com/payloadcms/payload/tree/3.x/templates/website',
                   },
                   format: '',
                   indent: 0,
@@ -211,7 +211,7 @@ export const home: (args: HomeArgs) => RequiredDataFromCollectionSlug<'pages'> =
                         format: 0,
                         mode: 'normal',
                         style: '',
-                        text: "Manage this site's pages and posts from the ",
+                        text: "Manage this site's pages and articles from the ",
                         version: 1,
                       },
                       {
@@ -349,7 +349,7 @@ export const home: (args: HomeArgs) => RequiredDataFromCollectionSlug<'pages'> =
                         format: 0,
                         mode: 'normal',
                         style: '',
-                        text: 'Custom page builder allows you to create unique page, post, and project layouts for any type of content.',
+                        text: 'Custom page builder allows you to create unique page, article, and project layouts for any type of content.',
                         version: 1,
                       },
                     ],
@@ -516,7 +516,7 @@ export const home: (args: HomeArgs) => RequiredDataFromCollectionSlug<'pages'> =
       {
         blockName: 'Archive Block',
         blockType: 'archive',
-        categories: [],
+        sections: [],
         introContent: {
           root: {
             type: 'root',
@@ -530,7 +530,7 @@ export const home: (args: HomeArgs) => RequiredDataFromCollectionSlug<'pages'> =
                     format: 0,
                     mode: 'normal',
                     style: '',
-                    text: 'Recent posts',
+                    text: 'Recent articles',
                     version: 1,
                   },
                 ],
@@ -549,7 +549,7 @@ export const home: (args: HomeArgs) => RequiredDataFromCollectionSlug<'pages'> =
                     format: 0,
                     mode: 'normal',
                     style: '',
-                    text: 'The posts below are displayed in an "Archive" layout building block which is an extremely powerful way to display documents on a page. It can be auto-populated by collection or by category, or posts can be individually selected. Pagination controls will automatically appear if the number of results exceeds the number of items per page.',
+                    text: 'The articles below are displayed in an "Archive" layout building block which is an extremely powerful way to display documents on a page. It can be auto-populated by collection or by section, or articles can be individually selected. Pagination controls will automatically appear if the number of results exceeds the number of items per page.',
                     version: 1,
                   },
                 ],
@@ -567,7 +567,7 @@ export const home: (args: HomeArgs) => RequiredDataFromCollectionSlug<'pages'> =
           },
         },
         populateBy: 'collection',
-        relationTo: 'posts',
+        relationTo: 'articles',
       },
       {
         blockName: 'CTA',
@@ -577,8 +577,8 @@ export const home: (args: HomeArgs) => RequiredDataFromCollectionSlug<'pages'> =
             link: {
               type: 'custom',
               appearance: 'default',
-              label: 'All posts',
-              url: '/posts',
+              label: 'All articles',
+              url: '/articles',
             },
           },
         ],

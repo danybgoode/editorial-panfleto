@@ -6,30 +6,40 @@ import {
   lexicalEditor,
 } from '@payloadcms/richtext-lexical'
 import path from 'path'
-import { createFolderField } from 'payload'
 import { fileURLToPath } from 'url'
 
-import { anyone } from '../access/anyone'
-import { authenticated } from '../access/authenticated'
+import { adminOnly, adminOrEditor } from '../access/roles'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
 export const Media: CollectionConfig = {
   slug: 'media',
+  folders: true,
   access: {
-    create: authenticated,
-    delete: authenticated,
-    read: anyone,
-    update: authenticated,
+    create: adminOrEditor,
+    delete: adminOnly,
+    read: () => true,
+    update: adminOrEditor,
   },
   fields: [
     {
       name: 'alt',
       type: 'text',
-      //required: true,
+      required: true,
     },
-    createFolderField({ relationTo: 'folders' }),
+    {
+      name: 'credit',
+      type: 'text',
+    },
+    {
+      name: 'photographer',
+      type: 'text',
+    },
+    {
+      name: 'source',
+      type: 'text',
+    },
     {
       name: 'caption',
       type: 'richText',
