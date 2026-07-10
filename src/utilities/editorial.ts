@@ -76,7 +76,13 @@ export const getMediaCaption = (media?: Media | number | null) => {
 export const getAbsoluteMediaURL = (media?: Media | number | null, size: keyof NonNullable<Media['sizes']> = 'og') => {
   if (!media || typeof media !== 'object') return ''
 
-  const url = media.sizes?.[size]?.url || media.url
+  const selectedSize = media.sizes?.[size]
+  const filename = selectedSize?.filename || media.filename
+  const url =
+    process.env.NEXT_PUBLIC_MEDIA_DELIVERY === 'payload' && filename
+      ? `/api/media/file/${encodeURIComponent(filename)}`
+      : selectedSize?.url || media.url
+
   if (!url) return ''
   if (url.startsWith('http://') || url.startsWith('https://')) return url
 

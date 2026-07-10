@@ -11,9 +11,12 @@ const getImageURL = (image?: Media | Config['db']['defaultIDType'] | null) => {
   let url = serverUrl + '/website-template-OG.webp'
 
   if (image && typeof image === 'object' && 'url' in image) {
-    const ogUrl = image.sizes?.og?.url
+    const ogSize = image.sizes?.og
+    const imageUrl =
+      process.env.NEXT_PUBLIC_MEDIA_DELIVERY === 'payload' && (ogSize?.filename || image.filename)
+        ? `/api/media/file/${encodeURIComponent(ogSize?.filename || image.filename || '')}`
+        : ogSize?.url || image.url
 
-    const imageUrl = ogUrl || image.url
     if (imageUrl?.startsWith('http://') || imageUrl?.startsWith('https://')) {
       url = imageUrl
     } else if (imageUrl) {

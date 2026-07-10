@@ -10,6 +10,16 @@ import { redirects } from './redirects'
 const NEXT_PUBLIC_SERVER_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL
   ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
   : process.env.__NEXT_PRIVATE_ORIGIN || 'http://localhost:3000'
+const mediaRemotePatterns = [process.env.S3_ENDPOINT]
+  .filter((item): item is string => Boolean(item))
+  .map((item) => {
+    const url = new URL(item)
+
+    return {
+      hostname: url.hostname,
+      protocol: url.protocol.replace(':', '') as 'http' | 'https',
+    }
+  })
 
 const nextConfig: NextConfig = {
   // Temporarily required on Windows until Next.js fixes Turbopack Sass resolution.
@@ -29,6 +39,7 @@ const nextConfig: NextConfig = {
         hostname: '**.public.blob.vercel-storage.com',
         protocol: 'https',
       },
+      ...mediaRemotePatterns,
       ...[NEXT_PUBLIC_SERVER_URL /* 'https://example.com' */].map((item) => {
         const url = new URL(item)
 

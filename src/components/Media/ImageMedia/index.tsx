@@ -37,9 +37,10 @@ export const ImageMedia: React.FC<MediaProps> = (props) => {
   let src: StaticImageData | string = srcFromProps || ''
 
   if (!src && resource && typeof resource === 'object') {
-    const { alt: altFromResource, height: fullHeight, url, width: fullWidth } = resource
+    const { alt: altFromResource, filename, height: fullHeight, url, width: fullWidth } = resource
     const selectedSize = preferredSize ? resource.sizes?.[preferredSize] : undefined
     const selectedUrl = selectedSize?.url || url
+    const selectedFilename = selectedSize?.filename || filename
 
     width = selectedSize?.width || fullWidth!
     height = selectedSize?.height || fullHeight!
@@ -47,7 +48,7 @@ export const ImageMedia: React.FC<MediaProps> = (props) => {
 
     const cacheTag = resource.updatedAt
 
-    src = getMediaUrl(selectedUrl, cacheTag)
+    src = getMediaUrl(selectedUrl, cacheTag, selectedFilename)
   }
 
   const loading = loadingFromProps || (!priority ? 'lazy' : undefined)

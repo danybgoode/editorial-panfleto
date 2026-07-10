@@ -1,5 +1,5 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
-import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
+import { s3Storage } from '@payloadcms/storage-s3'
 import sharp from 'sharp'
 import path from 'path'
 import { buildConfig, PayloadRequest } from 'payload'
@@ -21,38 +21,31 @@ import { getServerSideURL } from './utilities/getURL'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
-const explicitBlobTokenEnv = process.env.BLOB_READ_WRITE_TOKEN_ENV
-const prefixedBlobTokens = Object.entries(process.env).filter(([key, value]) => {
-  return (
-    key !== 'BLOB_READ_WRITE_TOKEN' &&
-    key.endsWith('_READ_WRITE_TOKEN') &&
-    value?.startsWith('vercel_blob_rw_')
-  )
-})
+const mediaStorageProvider =
+  process.env.MEDIA_STORAGE_PROVIDER || (process.env.S3_BUCKET ? 's3' : 'local')
+const hasS3Config = Boolean(
+  process.env.S3_BUCKET &&
+    process.env.S3_ENDPOINT &&
+    process.env.S3_ACCESS_KEY_ID &&
+    process.env.S3_SECRET_ACCESS_KEY,
+)
+const useS3Storage = mediaStorageProvider === 's3'
 
-const resolvedBlobTokenEnv =
-  explicitBlobTokenEnv ||
-  (prefixedBlobTokens.length === 1 ? prefixedBlobTokens[0][0] : 'BLOB_READ_WRITE_TOKEN')
-const blobToken = process.env[resolvedBlobTokenEnv] || process.env.BLOB_READ_WRITE_TOKEN
-const hasBlobToken = Boolean(blobToken)
-
-if (process.env.VERCEL && !hasBlobToken) {
+if (!['local', 's3'].includes(mediaStorageProvider)) {
   throw new Error(
-    'Persistent media storage is not configured. Add a Vercel Blob store to this project, verify BLOB_READ_WRITE_TOKEN or BLOB_READ_WRITE_TOKEN_ENV is present in the Vercel environment, then redeploy.',
+    `Unsupported MEDIA_STORAGE_PROVIDER "${mediaStorageProvider}". Use "local" for development or "s3" for persistent object storage.`,
   )
 }
 
-if (process.env.VERCEL && explicitBlobTokenEnv && !process.env[explicitBlobTokenEnv]) {
+if (process.env.VERCEL && !useS3Storage) {
   throw new Error(
-    `Persistent media storage is misconfigured. BLOB_READ_WRITE_TOKEN_ENV points to ${explicitBlobTokenEnv}, but that environment variable is empty.`,
+    'Persistent media storage is not configured. Set MEDIA_STORAGE_PROVIDER=s3 and provide the S3/R2 environment variables before deploying to Vercel.',
   )
 }
 
-if (process.env.VERCEL && !explicitBlobTokenEnv && !process.env.BLOB_READ_WRITE_TOKEN && prefixedBlobTokens.length > 1) {
+if (useS3Storage && !hasS3Config) {
   throw new Error(
-    `Persistent media storage is ambiguous. Found multiple prefixed Vercel Blob tokens (${prefixedBlobTokens
-      .map(([key]) => key)
-      .join(', ')}). Set BLOB_READ_WRITE_TOKEN_ENV to the token variable for the Blob store connected to this project.`,
+    'Persistent media storage is incomplete. Set S3_BUCKET, S3_ENDPOINT, S3_ACCESS_KEY_ID, and S3_SECRET_ACCESS_KEY.',
   )
 }
 
@@ -105,13 +98,24 @@ export default buildConfig({
   globals: [Header, Footer],
   plugins: [
     ...plugins,
-    vercelBlobStorage({
+    s3Storage({
       clientUploads: true,
       collections: {
-        media: true,
+        media: {
+          signedDownloads: true,
+        },
       },
-      enabled: hasBlobToken,
-      token: blobToken,
+      config: {
+        credentials: {
+          accessKeyId: process.env.S3_ACCESS_KEY_ID || '',
+          secretAccessKey: process.env.S3_SECRET_ACCESS_KEY || '',
+        },
+        endpoint: process.env.S3_ENDPOINT,
+        forcePathStyle: process.env.S3_FORCE_PATH_STYLE !== 'false',
+        region: process.env.S3_REGION || 'auto',
+      },
+      bucket: process.env.S3_BUCKET || '',
+      enabled: useS3Storage,
     }),
   ],
   secret: process.env.PAYLOAD_SECRET,

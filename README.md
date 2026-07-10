@@ -7,7 +7,7 @@ Payload CMS and Next.js for a reader-facing digital newspaper. Payload owns auth
 - Node.js 22.x
 - pnpm 11.x
 - PostgreSQL, managed in production with Supabase
-- Vercel Blob for production media storage
+- Cloudflare R2, configured through Payload's S3 storage adapter, for production media storage
 
 ## Local Setup
 
@@ -27,8 +27,14 @@ Payload admin runs at `http://localhost:3000/admin`.
 - `NEXT_PUBLIC_SERVER_URL`: public app URL, no trailing slash.
 - `CRON_SECRET`: secret for scheduled jobs.
 - `PREVIEW_SECRET`: secret for draft preview routes.
-- `BLOB_READ_WRITE_TOKEN`: Vercel Blob token. Required on Vercel unless `BLOB_READ_WRITE_TOKEN_ENV` points to a prefixed token.
-- `BLOB_READ_WRITE_TOKEN_ENV`: optional name of a Vercel-created prefixed Blob token variable, such as `buena_READ_WRITE_TOKEN`.
+- `MEDIA_STORAGE_PROVIDER`: `s3` in Vercel, or `local` for local development without object storage.
+- `NEXT_PUBLIC_MEDIA_DELIVERY`: use `payload` to render files through Payload's media route, or `direct` for public object-store URLs.
+- `S3_BUCKET`: R2 bucket name.
+- `S3_ENDPOINT`: R2 S3 API endpoint, for example `https://ACCOUNT_ID.r2.cloudflarestorage.com`.
+- `S3_REGION`: use `auto` for Cloudflare R2.
+- `S3_FORCE_PATH_STYLE`: use `true` for Cloudflare R2.
+- `S3_ACCESS_KEY_ID`: R2 S3 access key ID.
+- `S3_SECRET_ACCESS_KEY`: R2 S3 secret access key.
 
 Never commit `.env` or production secrets.
 
@@ -66,25 +72,38 @@ Supabase examples often show `sslmode=require`. With the installed `pg`/`pg-conn
 
 ## Media Storage
 
-Local development can fall back to local media storage when no Blob token is present. Vercel production must use object storage because serverless filesystem uploads are not persistent between deployments or function instances.
+Local development can fall back to local media storage by setting `MEDIA_STORAGE_PROVIDER=local`. Vercel production must use object storage because serverless filesystem uploads are not persistent between deployments or function instances.
 
-The Payload Vercel Blob adapter is configured for the `media` collection with client uploads enabled. Client uploads send files directly to Blob and avoid Vercel's server request-body upload limit. When the adapter is enabled, it disables permanent local storage for the media collection.
+Production media is configured with Payload's official `@payloadcms/storage-s3` adapter against Cloudflare R2. The adapter targets the `media` collection, enables client uploads, and disables local permanent storage when enabled. Client uploads send files directly to R2 using presigned URLs, avoiding Vercel's server request-body upload limit.
 
-Vercel Blob setup:
+R2 setup:
 
-1. Open the Vercel project.
-2. Go to **Storage** and add a Blob store.
-3. Connect the Blob store to this project.
-4. Confirm a valid read/write token exists in Production, Preview, and Development environments as needed.
-   - Preferred: copy the active store's token into `BLOB_READ_WRITE_TOKEN`.
-   - If Vercel created prefixed variables such as `buena_READ_WRITE_TOKEN`, set `BLOB_READ_WRITE_TOKEN_ENV=buena_READ_WRITE_TOKEN`.
-5. Redeploy after adding or changing environment variables.
+1. Create or open the Cloudflare R2 bucket.
+2. Create R2 S3 client credentials for this bucket.
+3. Set `MEDIA_STORAGE_PROVIDER=s3`.
+4. Set `NEXT_PUBLIC_MEDIA_DELIVERY=payload` unless the bucket has a public custom delivery domain.
+5. Set `S3_BUCKET`, `S3_ENDPOINT`, `S3_REGION=auto`, `S3_FORCE_PATH_STYLE=true`, `S3_ACCESS_KEY_ID`, and `S3_SECRET_ACCESS_KEY` locally and in Vercel Production/Preview/Development as appropriate.
+6. Configure bucket CORS to allow browser uploads from the production domain and local development:
 
-If the admin console shows repeated CORS failures for `PUT https://vercel.com/api/blob/?pathname=...` and then reports an expired Blob token, the Payload client upload route is probably returning a token for the wrong or stale Blob store. Verify that `BLOB_READ_WRITE_TOKEN_ENV` points at the store connected to this project, or replace `BLOB_READ_WRITE_TOKEN` with the current store's read/write token.
+```json
+[
+  {
+    "AllowedOrigins": ["https://editorial-panfleto.vercel.app", "https://*.vercel.app", "http://localhost:3000"],
+    "AllowedMethods": ["GET", "PUT", "HEAD"],
+    "AllowedHeaders": ["*"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3000
+  }
+]
+```
+
+Redeploy after adding or changing environment variables.
+
+The previous Vercel Blob proof-of-concept was removed after client uploads repeatedly received a stale or wrong Vercel Blob handoff URL (`PUT https://vercel.com/api/blob/?pathname=...`), causing browser CORS failures and eventual expired-token errors. R2 is the intended long-term storage provider for this project.
 
 The Media collection accepts newsroom image formats, requires alt text, supports caption, credit, photographer/source, focal point selection, an admin thumbnail, and responsive sizes suitable for thumbnail, card, tablet, desktop, and social/share use. Original uploads are retained.
 
-Supabase Storage is not configured. If there is a future reason to move away from Vercel Blob, Supabase Storage can be wired through Payload's official S3-compatible storage adapter. Do not configure both storage adapters at the same time.
+Vercel Blob and Supabase Storage are not configured. Supabase Storage could be used later through the same Payload S3-compatible storage path, but do not configure multiple storage adapters at the same time.
 
 ## Content Model
 
@@ -127,7 +146,7 @@ The public design uses the existing CSS/Tailwind setup in `src/app/(frontend)/gl
 
 ## Images, Cache, And SEO
 
-Public cards use Payload image derivatives where available instead of always requesting originals. `next/image` is configured for local Payload media routes and Vercel Blob public URLs.
+Public cards use Payload image derivatives where available instead of always requesting originals. With `NEXT_PUBLIC_MEDIA_DELIVERY=payload`, `next/image` renders through `/api/media/file/...`, allowing the R2 bucket to remain private while Payload signs object reads.
 
 Article and page updates use the existing Payload revalidation hooks. Article metadata preserves SEO plugin fields, canonical URLs, Open Graph images, and social descriptions. Published article pages emit JSON-LD when the content model supplies the relevant fields.
 
@@ -147,12 +166,13 @@ Server-side application code should use Payload's Local API via `getPayload({ co
 - Add `NEXT_PUBLIC_SERVER_URL`.
 - Add `CRON_SECRET`.
 - Add `PREVIEW_SECRET`.
-- Add Vercel Blob and confirm `BLOB_READ_WRITE_TOKEN` exists, or set `BLOB_READ_WRITE_TOKEN_ENV` to the correct prefixed read/write token variable.
+- Add the Cloudflare R2 / S3 environment variables listed above.
+- Confirm R2 CORS allows PUT requests from the production and preview domains.
 - Redeploy after environment variable changes.
 - Confirm production database migrations run successfully.
 
 ## Known Limitations
 
-- Vercel project access is not available through the CLI in this environment, so Blob provisioning and deployment status must be verified in Vercel.
+- Vercel project access is available only when a valid local Vercel token is provided. Do not commit that token.
 - Local validation requires a reachable PostgreSQL database.
 - RSS is not implemented.

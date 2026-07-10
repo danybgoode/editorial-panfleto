@@ -5,8 +5,14 @@ declare global {
       DATABASE_URL: string
       NEXT_PUBLIC_SERVER_URL: string
       VERCEL_PROJECT_PRODUCTION_URL: string
-      BLOB_READ_WRITE_TOKEN?: string
-      BLOB_READ_WRITE_TOKEN_ENV?: string
+      MEDIA_STORAGE_PROVIDER?: 'local' | 's3'
+      NEXT_PUBLIC_MEDIA_DELIVERY?: 'payload' | 'direct'
+      S3_ACCESS_KEY_ID?: string
+      S3_BUCKET?: string
+      S3_ENDPOINT?: string
+      S3_FORCE_PATH_STYLE?: string
+      S3_REGION?: string
+      S3_SECRET_ACCESS_KEY?: string
     }
   }
 }
