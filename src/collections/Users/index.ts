@@ -1,4 +1,4 @@
-import type { CollectionAfterChangeHook, CollectionConfig } from 'payload'
+import type { CollectionAfterChangeHook, CollectionConfig, PayloadRequest } from 'payload'
 
 import { adminFieldOnly, adminOnly, isAdmin, isEditor, isWriter } from '../../access/roles'
 import {
@@ -11,13 +11,16 @@ import { getServerSideURL } from '@/utilities/getURL'
 const writerInviteSubject = () => 'Tu acceso a PANFLETO'
 
 const writerInviteHTML = ({
+  req,
   token,
   user,
 }: {
+  req?: PayloadRequest
   token?: string
   user?: { name?: string | null }
 }) => {
-  const resetURL = `${getServerSideURL()}/admin/reset/${token}`
+  const baseURL = req?.origin || getServerSideURL()
+  const resetURL = `${baseURL}/admin/reset/${token}`
   const greeting = user?.name ? `Hola ${user.name},` : 'Hola,'
 
   return `
@@ -40,12 +43,22 @@ const writerInviteHTML = ({
 const sendWriterInvite: CollectionAfterChangeHook = async ({ doc, operation, req }) => {
   if (operation !== 'create' || doc.role !== 'writer' || !doc.email) return doc
 
-  await req.payload.forgotPassword({
+  const token = await req.payload.forgotPassword({
     collection: 'users',
     data: {
       email: doc.email,
     },
     overrideAccess: true,
+    req,
+  })
+
+  if (!token) {
+    throw new Error(`Writer invite email was not sent because ${doc.email} could not be found.`)
+  }
+
+  req.payload.logger.info({
+    msg: 'Writer invite email sent',
+    userID: doc.id,
   })
 
   return doc
@@ -86,7 +99,8 @@ export const Users: CollectionConfig = {
   auth: {
     forgotPassword: {
       expiration: 1000 * 60 * 60 * 24 * 7,
-      generateEmailHTML: (args) => writerInviteHTML({ token: args?.token, user: args?.user }),
+      generateEmailHTML: (args) =>
+        writerInviteHTML({ req: args?.req, token: args?.token, user: args?.user }),
       generateEmailSubject: writerInviteSubject,
     },
   },
