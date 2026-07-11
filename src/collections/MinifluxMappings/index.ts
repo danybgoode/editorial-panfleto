@@ -40,6 +40,7 @@ export const MinifluxMappings: CollectionConfig = {
       name: 'sourceType',
       type: 'select',
       defaultValue: 'category',
+      label: 'Miniflux source type',
       options: [
         { label: 'Category', value: 'category' },
         { label: 'Feed', value: 'feed' },
@@ -49,7 +50,12 @@ export const MinifluxMappings: CollectionConfig = {
     {
       name: 'minifluxTargetId',
       type: 'text',
-      label: 'Miniflux category/feed ID',
+      label: 'Miniflux source',
+      admin: {
+        components: {
+          Field: '@/components/MinifluxSourceSelect',
+        },
+      },
       required: true,
     },
     {
@@ -65,6 +71,9 @@ export const MinifluxMappings: CollectionConfig = {
       name: 'minifluxTargetTitle',
       type: 'text',
       label: 'Miniflux source name',
+      admin: {
+        readOnly: true,
+      },
     },
     {
       name: 'section',

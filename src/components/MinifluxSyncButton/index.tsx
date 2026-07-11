@@ -44,7 +44,7 @@ export const MinifluxSyncButton: React.FC = () => {
   return (
     <div>
       <Button buttonStyle="primary" disabled={isSyncing || !id} onClick={handleSync} size="medium">
-        {isSyncing ? 'Syncing...' : 'Sync category now'}
+        {isSyncing ? 'Syncing...' : 'Sync mapping now'}
       </Button>
     </div>
   )

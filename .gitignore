@@ -9,6 +9,7 @@ next-env.d.ts
 .corepack
 .pnpm-store
 tsconfig.tsbuildinfo
+references/
 
 # Payload default media upload directory
 public/media/

@@ -17,6 +17,19 @@ export type MinifluxEntry = {
   created_at?: string
 }
 
+export type MinifluxCategory = {
+  id: number
+  title: string
+}
+
+export type MinifluxFeed = {
+  id: number
+  title: string
+  site_url?: string
+  feed_url?: string
+  category?: MinifluxCategory
+}
+
 type MinifluxEntriesResponse = {
   entries?: MinifluxEntry[]
 }
@@ -60,6 +73,14 @@ const minifluxFetch = async <T>(path: string): Promise<T> => {
 
   return response.json() as Promise<T>
 }
+
+export const fetchMinifluxCategories = async (): Promise<MinifluxCategory[]> =>
+  minifluxFetch<MinifluxCategory[]>('/categories')
+
+export const fetchMinifluxFeedsForCategory = async (
+  categoryId: number | string,
+): Promise<MinifluxFeed[]> =>
+  minifluxFetch<MinifluxFeed[]>(`/categories/${encodeURIComponent(categoryId)}/feeds`)
 
 export const fetchMinifluxEntries = async ({
   limit,
