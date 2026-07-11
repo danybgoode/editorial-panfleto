@@ -45,8 +45,8 @@ export const generateMeta = async (args: {
         : `/${doc.slug}`
     : '/'
   const canonical =
-    doc && 'canonicalURL' in doc && typeof doc.canonicalURL === 'string'
-      ? doc.canonicalURL
+    doc?.meta && 'canonicalURL' in doc.meta && typeof doc.meta.canonicalURL === 'string'
+      ? doc.meta.canonicalURL
       : undefined
   const metaURL = canonical || path
 

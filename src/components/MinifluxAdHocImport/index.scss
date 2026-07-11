@@ -1,0 +1,40 @@
+@import '@payloadcms/ui/scss';
+
+.miniflux-ad-hoc-import {
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 4px;
+  margin-bottom: base(1.25);
+  padding: base(0.85);
+
+  & h3 {
+    margin: 0 0 base(0.75);
+  }
+
+  &__grid {
+    display: grid;
+    gap: base(0.6);
+    grid-template-columns: minmax(220px, 2fr) minmax(160px, 1fr) minmax(160px, 1fr);
+    margin-bottom: base(0.75);
+  }
+
+  & label {
+    display: grid;
+    gap: base(0.2);
+  }
+
+  & input,
+  & select {
+    background: var(--theme-input-bg);
+    border: 1px solid var(--theme-elevation-150);
+    border-radius: 4px;
+    color: var(--theme-text);
+    min-height: base(1.5);
+    padding: 0 base(0.4);
+  }
+}
+
+@media (max-width: 900px) {
+  .miniflux-ad-hoc-import__grid {
+    grid-template-columns: 1fr;
+  }
+}

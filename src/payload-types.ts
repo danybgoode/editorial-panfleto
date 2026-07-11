@@ -75,6 +75,7 @@ export interface Config {
     tags: Tag;
     issues: Issue;
     pages: Page;
+    'miniflux-mappings': MinifluxMapping;
     redirects: Redirect;
     forms: Form;
     'form-submissions': FormSubmission;
@@ -100,6 +101,7 @@ export interface Config {
     tags: TagsSelect<false> | TagsSelect<true>;
     issues: IssuesSelect<false> | IssuesSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
+    'miniflux-mappings': MinifluxMappingsSelect<false> | MinifluxMappingsSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
@@ -354,6 +356,9 @@ export interface Article {
     title?: string | null;
     description?: string | null;
     canonicalURL?: string | null;
+    minifluxId?: string | null;
+    minifluxSourceTitle?: string | null;
+    minifluxImportedAt?: string | null;
     /**
      * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
      */
@@ -889,6 +894,28 @@ export interface Form {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "miniflux-mappings".
+ */
+export interface MinifluxMapping {
+  id: number;
+  title: string;
+  sourceType: 'category' | 'feed';
+  minifluxTargetId: string;
+  minifluxTargetKey?: string | null;
+  minifluxTargetTitle?: string | null;
+  section: number | Section;
+  defaultAuthor: number | Author;
+  fetchLimit: number;
+  active?: boolean | null;
+  lastSyncAt?: string | null;
+  lastSyncCreated?: number | null;
+  lastSyncUpdated?: number | null;
+  lastSyncSkipped?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "redirects".
  */
 export interface Redirect {
@@ -1110,6 +1137,10 @@ export interface PayloadLockedDocument {
         value: number | Page;
       } | null)
     | ({
+        relationTo: 'miniflux-mappings';
+        value: number | MinifluxMapping;
+      } | null)
+    | ({
         relationTo: 'redirects';
         value: number | Redirect;
       } | null)
@@ -1324,6 +1355,9 @@ export interface ArticlesSelect<T extends boolean = true> {
         title?: T;
         description?: T;
         canonicalURL?: T;
+        minifluxId?: T;
+        minifluxSourceTitle?: T;
+        minifluxImportedAt?: T;
         image?: T;
       };
   printNotes?: T;
@@ -1547,6 +1581,27 @@ export interface FormBlockSelect<T extends boolean = true> {
   introContent?: T;
   id?: T;
   blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "miniflux-mappings_select".
+ */
+export interface MinifluxMappingsSelect<T extends boolean = true> {
+  title?: T;
+  sourceType?: T;
+  minifluxTargetId?: T;
+  minifluxTargetKey?: T;
+  minifluxTargetTitle?: T;
+  section?: T;
+  defaultAuthor?: T;
+  fetchLimit?: T;
+  active?: T;
+  lastSyncAt?: T;
+  lastSyncCreated?: T;
+  lastSyncUpdated?: T;
+  lastSyncSkipped?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

@@ -10,10 +10,12 @@ import { Articles } from './collections/Articles'
 import { Authors } from './collections/Authors'
 import { Issues } from './collections/Issues'
 import { Media } from './collections/Media'
+import { MinifluxMappings } from './collections/MinifluxMappings'
 import { Pages } from './collections/Pages'
 import { Sections } from './collections/Sections'
 import { Tags } from './collections/Tags'
 import { Users } from './collections/Users'
+import { minifluxEndpoints } from './endpoints/miniflux'
 import { Footer } from './Footer/config'
 import { Header } from './Header/config'
 import { plugins } from './plugins'
@@ -99,8 +101,9 @@ export default buildConfig({
     defaultFromName: 'PANFLETO',
     apiKey: process.env.RESEND_API_KEY || '',
   }),
-  collections: [Users, Media, Articles, Authors, Sections, Tags, Issues, Pages],
+  collections: [Users, Media, Articles, Authors, Sections, Tags, Issues, Pages, MinifluxMappings],
   cors: [getServerSideURL()].filter(Boolean),
+  endpoints: [...minifluxEndpoints],
   globals: [Header, Footer],
   plugins: [
     ...plugins,

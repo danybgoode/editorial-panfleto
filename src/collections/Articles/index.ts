@@ -219,6 +219,34 @@ export const Articles: CollectionConfig<'articles'> = {
               type: 'text',
               label: 'Canonical URL',
             },
+            {
+              name: 'minifluxId',
+              type: 'text',
+              admin: {
+                readOnly: true,
+              },
+              label: 'Miniflux ID',
+              unique: true,
+            },
+            {
+              name: 'minifluxSourceTitle',
+              type: 'text',
+              admin: {
+                readOnly: true,
+              },
+              label: 'Miniflux source',
+            },
+            {
+              name: 'minifluxImportedAt',
+              type: 'date',
+              admin: {
+                date: {
+                  pickerAppearance: 'dayAndTime',
+                },
+                readOnly: true,
+              },
+              label: 'Miniflux imported at',
+            },
             MetaImageField({
               relationTo: 'media',
               overrides: {
