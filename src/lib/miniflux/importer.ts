@@ -32,12 +32,20 @@ const getArticleSlug = (headline: string, minifluxId: string): string => {
   return `${slug || 'miniflux-entry'}-${minifluxId}`
 }
 
-const findArticleByMinifluxId = async (payload: Payload, minifluxId: string) =>
+const findArticleByMinifluxId = async (
+  payload: Payload,
+  minifluxId: string,
+  req?: PayloadRequest,
+  overrideAccess = false,
+) =>
   payload.find({
     collection: 'articles',
     depth: 0,
+    draft: true,
     limit: 1,
+    overrideAccess,
     pagination: false,
+    req,
     where: {
       'meta.minifluxId': {
         equals: minifluxId,
@@ -48,18 +56,20 @@ const findArticleByMinifluxId = async (payload: Payload, minifluxId: string) =>
 const importEntry = async ({
   author,
   entry,
+  overrideAccess = false,
   payload,
   req,
   section,
 }: {
   author: number | string
   entry: MinifluxEntry
+  overrideAccess?: boolean
   payload: Payload
   req?: PayloadRequest
   section: number | string
 }): Promise<ImportResult> => {
   const minifluxId = String(entry.id)
-  const existing = await findArticleByMinifluxId(payload, minifluxId)
+  const existing = await findArticleByMinifluxId(payload, minifluxId, req, overrideAccess)
   const publishedAt = entry.published_at || entry.created_at || new Date().toISOString()
   const headline = entry.title || 'Untitled Miniflux entry'
 
@@ -80,7 +90,7 @@ const importEntry = async ({
       } as Partial<RequiredDataFromCollectionSlug<'articles'>>,
       depth: 0,
       draft: true,
-      overrideAccess: false,
+      overrideAccess,
       req,
     })
 
@@ -109,7 +119,7 @@ const importEntry = async ({
     } as RequiredDataFromCollectionSlug<'articles'>,
     depth: 0,
     draft: true,
-    overrideAccess: false,
+    overrideAccess,
     req,
   })
 
@@ -118,10 +128,12 @@ const importEntry = async ({
 
 export const syncMinifluxMapping = async ({
   mappingId,
+  overrideAccess = false,
   payload,
   req,
 }: {
   mappingId: number | string
+  overrideAccess?: boolean
   payload: Payload
   req: PayloadRequest
 }) => {
@@ -129,11 +141,11 @@ export const syncMinifluxMapping = async ({
     id: mappingId,
     collection: 'miniflux-mappings',
     depth: 1,
-    overrideAccess: false,
+    overrideAccess,
     req,
   })) as MinifluxMapping
 
-  if (!mapping.active) {
+  if (mapping.enabled === false || mapping.active === false) {
     throw new Error('This Miniflux mapping is disabled.')
   }
 
@@ -148,7 +160,7 @@ export const syncMinifluxMapping = async ({
   const totals: ImportResult = { created: 0, skipped: 0, updated: 0 }
 
   for (const entry of entries) {
-    const result = await importEntry({ author, entry, payload, req, section })
+    const result = await importEntry({ author, entry, overrideAccess, payload, req, section })
     totals.created += result.created
     totals.skipped += result.skipped
     totals.updated += result.updated
@@ -158,13 +170,14 @@ export const syncMinifluxMapping = async ({
     id: mapping.id,
     collection: 'miniflux-mappings',
     data: {
+      lastSynced: new Date().toISOString(),
       lastSyncAt: new Date().toISOString(),
       lastSyncCreated: totals.created,
       lastSyncUpdated: totals.updated,
       lastSyncSkipped: totals.skipped,
     },
     depth: 0,
-    overrideAccess: false,
+    overrideAccess,
     req,
   })
 

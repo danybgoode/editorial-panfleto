@@ -5,7 +5,7 @@ import Link from 'next/link'
 import React from 'react'
 
 import { MinifluxAdHocImport } from '@/components/MinifluxAdHocImport'
-import type { Article, User } from '@/payload-types'
+import type { Article, Author, Section, User } from '@/payload-types'
 
 import './index.scss'
 
@@ -35,19 +35,21 @@ const statusLabels: Record<Article['editorialStatus'], string> = {
   ready: 'Ready',
 }
 
+const hasName = (value: unknown): value is Pick<Author | Section, 'name'> =>
+  Boolean(value && typeof value === 'object' && 'name' in value && value.name)
+
 const bylineFor = (article: Article) => {
-  const primary = typeof article.author === 'object' ? article.author.name : null
+  const primary = hasName(article.author) ? article.author.name : null
   const coAuthors = Array.isArray(article.coAuthors)
     ? article.coAuthors
-        .map((author) => (typeof author === 'object' ? author.name : null))
+        .map((author) => (hasName(author) ? author.name : null))
         .filter(Boolean)
     : []
 
   return [primary, ...coAuthors].filter(Boolean).join(', ') || 'Unassigned'
 }
 
-const sectionFor = (article: Article) =>
-  typeof article.section === 'object' ? article.section.name : 'No section'
+const sectionFor = (article: Article) => (hasName(article.section) ? article.section.name : 'No section')
 
 const formatUpdatedAt = (updatedAt: string) =>
   new Intl.DateTimeFormat('en', {

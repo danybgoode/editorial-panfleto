@@ -7,6 +7,10 @@ const setMinifluxTargetKey: CollectionBeforeValidateHook = ({ data }) => {
     data.minifluxTargetKey = `${data.sourceType}:${data.minifluxTargetId}`
   }
 
+  if (typeof data?.enabled === 'boolean') {
+    data.active = data.enabled
+  }
+
   return data
 }
 
@@ -24,8 +28,8 @@ export const MinifluxMappings: CollectionConfig = {
       'sourceType',
       'minifluxTargetId',
       'section',
-      'active',
-      'lastSyncAt',
+      'enabled',
+      'lastSynced',
     ],
     group: 'Editorial',
     useAsTitle: 'title',
@@ -98,10 +102,20 @@ export const MinifluxMappings: CollectionConfig = {
       required: true,
     },
     {
-      name: 'active',
+      name: 'enabled',
       type: 'checkbox',
       defaultValue: true,
       label: 'Enabled',
+    },
+    {
+      name: 'active',
+      type: 'checkbox',
+      admin: {
+        hidden: true,
+        readOnly: true,
+      },
+      defaultValue: true,
+      label: 'Legacy enabled flag',
     },
     {
       name: 'syncNow',
@@ -116,14 +130,24 @@ export const MinifluxMappings: CollectionConfig = {
       type: 'row',
       fields: [
         {
-          name: 'lastSyncAt',
+          name: 'lastSynced',
           type: 'date',
+          label: 'Last synced',
           admin: {
             date: {
               pickerAppearance: 'dayAndTime',
             },
             readOnly: true,
           },
+        },
+        {
+          name: 'lastSyncAt',
+          type: 'date',
+          admin: {
+            hidden: true,
+            readOnly: true,
+          },
+          label: 'Legacy last sync time',
         },
         {
           name: 'lastSyncCreated',

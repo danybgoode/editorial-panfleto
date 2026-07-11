@@ -118,7 +118,7 @@ export default async function Article({ params: paramsPromise }: Args) {
 
   return (
     <article className="article-page">
-      <PageClient />
+      <PageClient articleId={article.id} />
       <PayloadRedirects disableNotFound url={url} />
       {draft && <LivePreviewListener />}
 

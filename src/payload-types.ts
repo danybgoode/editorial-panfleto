@@ -370,6 +370,10 @@ export interface Article {
   updatedDate?: string | null;
   featured?: boolean | null;
   breakingNews?: boolean | null;
+  /**
+   * Boost or dampen this story in Redis-backed top-news ranking.
+   */
+  trendingMultiplier?: number | null;
   owner?: (number | null) | User;
   populatedAuthors?:
     | {
@@ -906,7 +910,9 @@ export interface MinifluxMapping {
   section: number | Section;
   defaultAuthor: number | Author;
   fetchLimit: number;
+  enabled?: boolean | null;
   active?: boolean | null;
+  lastSynced?: string | null;
   lastSyncAt?: string | null;
   lastSyncCreated?: number | null;
   lastSyncUpdated?: number | null;
@@ -1366,6 +1372,7 @@ export interface ArticlesSelect<T extends boolean = true> {
   updatedDate?: T;
   featured?: T;
   breakingNews?: T;
+  trendingMultiplier?: T;
   owner?: T;
   populatedAuthors?:
     | T
@@ -1595,7 +1602,9 @@ export interface MinifluxMappingsSelect<T extends boolean = true> {
   section?: T;
   defaultAuthor?: T;
   fetchLimit?: T;
+  enabled?: T;
   active?: T;
+  lastSynced?: T;
   lastSyncAt?: T;
   lastSyncCreated?: T;
   lastSyncUpdated?: T;

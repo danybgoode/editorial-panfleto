@@ -26,6 +26,9 @@ Payload admin runs at `http://localhost:3000/admin`.
 - `PAYLOAD_SECRET`: long random secret for Payload auth and encrypted values.
 - `NEXT_PUBLIC_SERVER_URL`: public app URL, no trailing slash.
 - `CRON_SECRET`: secret for scheduled jobs.
+- `QSTASH_TOKEN` or `UPSTASH_QSTASH_TOKEN`: Upstash QStash publish token for fan-out Miniflux sync jobs.
+- `UPSTASH_REDIS_REST_URL`: Upstash Redis REST endpoint for article view tracking.
+- `UPSTASH_REDIS_REST_TOKEN`: Upstash Redis REST token with write access for article view tracking.
 - `PREVIEW_SECRET`: secret for draft preview routes.
 - `MEDIA_STORAGE_PROVIDER`: `s3` in Vercel, or `local` for local development without object storage.
 - `NEXT_PUBLIC_MEDIA_DELIVERY`: use `payload` to render files through Payload's media route, or `direct` for public object-store URLs.
@@ -156,6 +159,8 @@ Payload REST API is available under `/api`. GraphQL and GraphQL Playground are e
 
 Server-side application code should use Payload's Local API via `getPayload({ config })`.
 
+Miniflux automation uses `/api/miniflux/cron-trigger` as the authenticated dispatcher and `/api/miniflux/sync-feed` as the single-mapping worker. Both expect `Authorization: Bearer $CRON_SECRET`. Article pages post to `/api/trending/view` after mount; the endpoint increments `news:views:YYYY-MM-DD` in Upstash Redis and the homepage reads those ZSETs with a time-decay ranking.
+
 ## Vercel Deployment Checklist
 
 - Set Node.js to 22.x or let Vercel use `package.json` engines.
@@ -165,6 +170,8 @@ Server-side application code should use Payload's Local API via `getPayload({ co
 - Add `PAYLOAD_SECRET`.
 - Add `NEXT_PUBLIC_SERVER_URL`.
 - Add `CRON_SECRET`.
+- Add `QSTASH_TOKEN` or `UPSTASH_QSTASH_TOKEN`.
+- Add `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`.
 - Add `PREVIEW_SECRET`.
 - Add the Cloudflare R2 / S3 environment variables listed above.
 - Confirm R2 CORS allows PUT requests from the production and preview domains.
