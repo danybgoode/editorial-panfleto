@@ -2,10 +2,13 @@ import configPromise from '@payload-config'
 import os from 'node:os'
 import path from 'path'
 import { getPayload, type RequiredDataFromCollectionSlug } from 'payload'
-import sharp from 'sharp'
 import { mkdir } from 'node:fs/promises'
 
 const imageDir = path.resolve(os.tmpdir(), 'panfleto-seed-media')
+
+type SeedDemoOptions = {
+  includeMedia?: boolean
+}
 
 const richText = (...paragraphs: string[]) => ({
   root: {
@@ -214,6 +217,8 @@ const toSlug = (value: string) =>
     .replace(/(^-|-$)/g, '')
 
 const ensureImageFiles = async () => {
+  const { default: sharp } = await import('sharp')
+
   await mkdir(imageDir, { recursive: true })
 
   await Promise.all(
@@ -225,9 +230,7 @@ const ensureImageFiles = async () => {
   )
 }
 
-export const seedDemoContent = async () => {
-  await ensureImageFiles()
-
+export const seedDemoContent = async ({ includeMedia = true }: SeedDemoOptions = {}) => {
   const payload = await getPayload({ config: configPromise })
 
   const sectionDocs = new Map<string, number | string>()
@@ -279,28 +282,32 @@ export const seedDemoContent = async () => {
   }
 
   const mediaDocs = new Map<string, number | string>()
-  for (const [key, label] of demoImages) {
-    const alt = `PANFLETO demo ${label.toLowerCase()}`
-    const existing = await payload.find({
-      collection: 'media',
-      limit: 1,
-      pagination: false,
-      where: { alt: { equals: alt } },
-    })
+  if (includeMedia) {
+    await ensureImageFiles()
 
-    const doc =
-      existing.docs[0] ||
-      (await payload.create({
+    for (const [key, label] of demoImages) {
+      const alt = `PANFLETO demo ${label.toLowerCase()}`
+      const existing = await payload.find({
         collection: 'media',
-        data: {
-          alt,
-          credit: 'PANFLETO',
-          source: 'Imagen editorial de muestra',
-        },
-        filePath: path.join(imageDir, `${key}.jpg`),
-      }))
+        limit: 1,
+        pagination: false,
+        where: { alt: { equals: alt } },
+      })
 
-    mediaDocs.set(key, doc.id)
+      const doc =
+        existing.docs[0] ||
+        (await payload.create({
+          collection: 'media',
+          data: {
+            alt,
+            credit: 'PANFLETO',
+            source: 'Imagen editorial de muestra',
+          },
+          filePath: path.join(imageDir, `${key}.jpg`),
+        }))
+
+      mediaDocs.set(key, doc.id)
+    }
   }
 
   const now = Date.now()
@@ -322,7 +329,6 @@ export const seedDemoContent = async () => {
       subtitle: article.subtitle,
       slug,
       summary: article.summary,
-      featuredImage,
       body,
       author,
       section,
@@ -335,8 +341,17 @@ export const seedDemoContent = async () => {
       meta: {
         title: article.headline,
         description: article.summary,
-        image: featuredImage,
       },
+      ...(featuredImage
+        ? {
+            featuredImage,
+            meta: {
+              title: article.headline,
+              description: article.summary,
+              image: featuredImage,
+            },
+          }
+        : {}),
     }
 
     const existing = await payload.find({
@@ -369,6 +384,7 @@ export const seedDemoContent = async () => {
   return {
     articles: articles.length,
     authors: authors.length,
+    media: includeMedia ? demoImages.length : 0,
     sections: sections.length,
   }
 }

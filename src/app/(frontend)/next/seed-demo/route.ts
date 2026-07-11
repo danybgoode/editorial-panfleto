@@ -25,8 +25,9 @@ export async function POST(request: Request) {
   }
 
   try {
+    const includeMedia = new URL(request.url).searchParams.get('media') === '1'
     const { seedDemoContent } = await import('@/endpoints/seedDemoContent')
-    const result = await seedDemoContent()
+    const result = await seedDemoContent({ includeMedia })
 
     return Response.json({
       ok: true,
