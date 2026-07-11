@@ -70,6 +70,7 @@ export interface Config {
     users: User;
     media: Media;
     articles: Article;
+    tasks: Task;
     authors: Author;
     sections: Section;
     tags: Tag;
@@ -96,6 +97,7 @@ export interface Config {
     users: UsersSelect<false> | UsersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     articles: ArticlesSelect<false> | ArticlesSelect<true>;
+    tasks: TasksSelect<false> | TasksSelect<true>;
     authors: AuthorsSelect<false> | AuthorsSelect<true>;
     sections: SectionsSelect<false> | SectionsSelect<true>;
     tags: TagsSelect<false> | TagsSelect<true>;
@@ -482,6 +484,35 @@ export interface Issue {
   issueDate: string;
   issueNumber?: string | null;
   coverImage?: (number | null) | Media;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tasks".
+ */
+export interface Task {
+  id: number;
+  title: string;
+  requirements: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  deadline: string;
+  status: 'todo' | 'in_progress' | 'under_review' | 'completed';
+  assignedTo: number | User;
+  article?: (number | null) | Article;
   updatedAt: string;
   createdAt: string;
 }
@@ -1123,6 +1154,10 @@ export interface PayloadLockedDocument {
         value: number | Article;
       } | null)
     | ({
+        relationTo: 'tasks';
+        value: number | Task;
+      } | null)
+    | ({
         relationTo: 'authors';
         value: number | Author;
       } | null)
@@ -1383,6 +1418,20 @@ export interface ArticlesSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tasks_select".
+ */
+export interface TasksSelect<T extends boolean = true> {
+  title?: T;
+  requirements?: T;
+  deadline?: T;
+  status?: T;
+  assignedTo?: T;
+  article?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

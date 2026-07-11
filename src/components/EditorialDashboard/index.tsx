@@ -5,7 +5,8 @@ import Link from 'next/link'
 import React from 'react'
 
 import { MinifluxAdHocImport } from '@/components/MinifluxAdHocImport'
-import type { Article, Author, Section, User } from '@/payload-types'
+import type { Article, Author, Section, Task, User } from '@/payload-types'
+import { isAdminOrEditor } from '@/access/roles'
 
 import './index.scss'
 
@@ -35,8 +36,44 @@ const statusLabels: Record<Article['editorialStatus'], string> = {
   ready: 'Ready',
 }
 
+const taskColumns = [
+  {
+    label: 'To do',
+    slug: 'todo',
+    statuses: ['todo'],
+  },
+  {
+    label: 'In progress',
+    slug: 'in-progress',
+    statuses: ['in_progress'],
+  },
+  {
+    label: 'Under review',
+    slug: 'under-review',
+    statuses: ['under_review'],
+  },
+  {
+    label: 'Completed',
+    slug: 'completed',
+    statuses: ['completed'],
+  },
+] as const
+
+const taskStatusLabels: Record<Task['status'], string> = {
+  completed: 'Completed',
+  in_progress: 'In progress',
+  todo: 'To do',
+  under_review: 'Under review',
+}
+
 const hasName = (value: unknown): value is Pick<Author | Section, 'name'> =>
   Boolean(value && typeof value === 'object' && 'name' in value && value.name)
+
+const hasUserLabel = (value: unknown): value is Pick<User, 'email' | 'name'> =>
+  Boolean(value && typeof value === 'object' && ('name' in value || 'email' in value))
+
+const hasArticleHeadline = (value: unknown): value is Pick<Article, 'headline'> =>
+  Boolean(value && typeof value === 'object' && 'headline' in value && value.headline)
 
 const bylineFor = (article: Article) => {
   const primary = hasName(article.author) ? article.author.name : null
@@ -56,6 +93,12 @@ const formatUpdatedAt = (updatedAt: string) =>
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date(updatedAt))
+
+const formatDeadline = (deadline: string) =>
+  new Intl.DateTimeFormat('en', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(deadline))
 
 const getEditableArticlesWhere = (user?: User | null): Where => {
   const activeStatusFilter: Where = {
@@ -80,36 +123,82 @@ const getEditableArticlesWhere = (user?: User | null): Where => {
   return activeStatusFilter
 }
 
+const getVisibleTasksWhere = (user?: User | null): Where => {
+  if (user?.role === 'writer') {
+    return {
+      assignedTo: {
+        equals: user.id,
+      },
+    }
+  }
+
+  return {}
+}
+
 const getColumnArticles = (
   articles: Article[],
   statuses: readonly Article['editorialStatus'][],
 ) => articles.filter((article) => statuses.includes(article.editorialStatus)).slice(0, 12)
 
+const getColumnTasks = (tasks: Task[], statuses: readonly Task['status'][]) =>
+  tasks.filter((task) => statuses.includes(task.status)).slice(0, 12)
+
+const assigneeFor = (task: Task) => {
+  if (hasUserLabel(task.assignedTo)) return task.assignedTo.name || task.assignedTo.email
+
+  return 'Unassigned'
+}
+
+const linkedArticleFor = (task: Task) =>
+  hasArticleHeadline(task.article) ? task.article.headline : 'No article linked'
+
 const EditorialDashboard = async ({ initPageResult, payload, user }: DashboardViewServerProps) => {
   const { req } = initPageResult
 
-  const articlesResult = await payload.find({
-    collection: 'articles',
-    depth: 1,
-    limit: 75,
-    overrideAccess: false,
-    pagination: false,
-    req,
-    select: {
-      author: true,
-      coAuthors: true,
-      editorialStatus: true,
-      headline: true,
-      section: true,
-      updatedAt: true,
-    },
-    sort: '-updatedAt',
-    where: getEditableArticlesWhere(user),
-  })
+  const [articlesResult, tasksResult] = await Promise.all([
+    payload.find({
+      collection: 'articles',
+      depth: 1,
+      limit: 75,
+      overrideAccess: false,
+      pagination: false,
+      req,
+      select: {
+        author: true,
+        coAuthors: true,
+        editorialStatus: true,
+        headline: true,
+        section: true,
+        updatedAt: true,
+      },
+      sort: '-updatedAt',
+      where: getEditableArticlesWhere(user),
+    }),
+    payload.find({
+      collection: 'tasks',
+      depth: 1,
+      limit: 100,
+      overrideAccess: false,
+      pagination: false,
+      req,
+      select: {
+        article: true,
+        assignedTo: true,
+        deadline: true,
+        status: true,
+        title: true,
+      },
+      sort: 'deadline',
+      where: getVisibleTasksWhere(user),
+    }),
+  ])
 
   const articles = articlesResult.docs as Article[]
+  const tasks = tasksResult.docs as Task[]
   const totalActive = articles.length
+  const activeTasks = tasks.filter((task) => task.status !== 'completed').length
   const visibleName = user?.name || user?.email || 'editor'
+  const canManageTasks = isAdminOrEditor(user)
 
   return (
     <main className="editorial-dashboard">
@@ -122,9 +211,16 @@ const EditorialDashboard = async ({ initPageResult, payload, user }: DashboardVi
             stay in one scan-friendly view.
           </p>
         </div>
-        <Link className="editorial-dashboard__create" href="/admin/collections/articles/create">
-          Create New Article
-        </Link>
+        <div className="editorial-dashboard__actions">
+          {canManageTasks && (
+            <Link className="editorial-dashboard__create" href="/admin/collections/tasks/create">
+              Create Task
+            </Link>
+          )}
+          <Link className="editorial-dashboard__create" href="/admin/collections/articles/create">
+            Create Article
+          </Link>
+        </div>
       </header>
 
       <section className="editorial-dashboard__tools">
@@ -138,10 +234,70 @@ const EditorialDashboard = async ({ initPageResult, payload, user }: DashboardVi
             <p>{column.label}</p>
           </div>
         ))}
+        <div className="editorial-dashboard__metric">
+          <span>{activeTasks}</span>
+          <p>Open tasks</p>
+        </div>
+      </section>
+
+      <section className="editorial-dashboard__section-heading">
+        <h2>Assignments</h2>
+      </section>
+
+      <section className="editorial-dashboard__task-board" aria-label="Assignment workflow">
+        {taskColumns.map((column) => {
+          const columnTasks = getColumnTasks(tasks, column.statuses)
+
+          return (
+            <div className="editorial-dashboard__column" key={column.slug}>
+              <div className="editorial-dashboard__column-header">
+                <h2>{column.label}</h2>
+                <span>{columnTasks.length}</span>
+              </div>
+
+              <div className="editorial-dashboard__stack">
+                {columnTasks.length > 0 ? (
+                  columnTasks.map((task) => (
+                    <Link
+                      className="editorial-dashboard__card editorial-dashboard__task-card"
+                      href={`/admin/collections/tasks/${task.id}`}
+                      key={task.id}
+                    >
+                      <span className="editorial-dashboard__status">
+                        {taskStatusLabels[task.status]}
+                      </span>
+                      <h3>{task.title}</h3>
+                      <dl>
+                        <div>
+                          <dt>Deadline</dt>
+                          <dd>{formatDeadline(task.deadline)}</dd>
+                        </div>
+                        <div>
+                          <dt>Assignee</dt>
+                          <dd>{assigneeFor(task)}</dd>
+                        </div>
+                        <div>
+                          <dt>Article</dt>
+                          <dd>{linkedArticleFor(task)}</dd>
+                        </div>
+                      </dl>
+                    </Link>
+                  ))
+                ) : (
+                  <div className="editorial-dashboard__empty">No tasks here.</div>
+                )}
+              </div>
+            </div>
+          )
+        })}
       </section>
 
       <section className="editorial-dashboard__import">
         <MinifluxAdHocImport />
+      </section>
+
+      <section className="editorial-dashboard__section-heading">
+        <h2>Articles</h2>
       </section>
 
       <section className="editorial-dashboard__board" aria-label="Editorial workflow">

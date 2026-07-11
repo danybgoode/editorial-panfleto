@@ -1,6 +1,7 @@
 import * as migration_20260710_022009_initial_newspaper_schema from './20260710_022009_initial_newspaper_schema';
 import * as migration_20260711_061353_miniflux_ingestion from './20260711_061353_miniflux_ingestion';
 import * as migration_20260711_180000_automation_trending from './20260711_180000_automation_trending';
+import * as migration_20260711_210758_newsroom_tasks from './20260711_210758_newsroom_tasks';
 
 export const migrations = [
   {
@@ -11,11 +12,16 @@ export const migrations = [
   {
     up: migration_20260711_061353_miniflux_ingestion.up,
     down: migration_20260711_061353_miniflux_ingestion.down,
-    name: '20260711_061353_miniflux_ingestion'
+    name: '20260711_061353_miniflux_ingestion',
   },
   {
     up: migration_20260711_180000_automation_trending.up,
     down: migration_20260711_180000_automation_trending.down,
-    name: '20260711_180000_automation_trending'
+    name: '20260711_180000_automation_trending',
+  },
+  {
+    up: migration_20260711_210758_newsroom_tasks.up,
+    down: migration_20260711_210758_newsroom_tasks.down,
+    name: '20260711_210758_newsroom_tasks',
   },
 ];

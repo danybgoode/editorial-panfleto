@@ -14,6 +14,7 @@ import { MinifluxMappings } from './collections/MinifluxMappings'
 import { Pages } from './collections/Pages'
 import { Sections } from './collections/Sections'
 import { Tags } from './collections/Tags'
+import { Tasks } from './collections/Tasks'
 import { Users } from './collections/Users'
 import { minifluxEndpoints } from './endpoints/miniflux'
 import { trendingEndpoints } from './endpoints/trending'
@@ -132,7 +133,7 @@ export default buildConfig({
     defaultFromName: 'PANFLETO',
     apiKey: process.env.RESEND_API_KEY || '',
   }),
-  collections: [Users, Media, Articles, Authors, Sections, Tags, Issues, Pages, MinifluxMappings],
+  collections: [Users, Media, Articles, Tasks, Authors, Sections, Tags, Issues, Pages, MinifluxMappings],
   cors: [getServerSideURL()].filter(Boolean),
   endpoints: [...minifluxEndpoints, ...trendingEndpoints],
   globals: [Header, Footer],
