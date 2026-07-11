@@ -12,12 +12,19 @@ import { HeaderNav } from './Nav'
 interface HeaderClientProps {
   data: Header
   dateLabel: string
+  dateTime: string
   sections: Section[]
 }
 
-export const HeaderClient: React.FC<HeaderClientProps> = ({ data, dateLabel, sections }) => {
+export const HeaderClient: React.FC<HeaderClientProps> = ({
+  data,
+  dateLabel,
+  dateTime,
+  sections,
+}) => {
   /* Storing the value in a useState to avoid hydration errors */
   const [theme, setTheme] = useState<string | null>(null)
+  const [compact, setCompact] = useState(false)
   const { headerTheme, setHeaderTheme } = useHeaderTheme()
   const pathname = usePathname()
 
@@ -31,11 +38,27 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({ data, dateLabel, sec
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [headerTheme])
 
+  useEffect(() => {
+    const updateCompact = () => {
+      setCompact(window.scrollY > 88)
+    }
+
+    updateCompact()
+    window.addEventListener('scroll', updateCompact, { passive: true })
+
+    return () => {
+      window.removeEventListener('scroll', updateCompact)
+    }
+  }, [])
+
   return (
-    <header className="site-header" {...(theme ? { 'data-theme': theme } : {})}>
+    <header
+      className={compact ? 'site-header is-compact' : 'site-header'}
+      {...(theme ? { 'data-theme': theme } : {})}
+    >
       <div className="site-header__utility ep-container">
         <span>Edición digital</span>
-        <time dateTime={new Date().toISOString()}>{dateLabel}</time>
+        <time dateTime={dateTime}>{dateLabel}</time>
       </div>
       <div className="site-header__masthead ep-container">
         <Link className="site-wordmark" href="/">

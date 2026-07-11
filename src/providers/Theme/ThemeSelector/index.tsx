@@ -1,52 +1,46 @@
 'use client'
 
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Moon, Sun } from 'lucide-react'
-import React, { useState } from 'react'
+import { Monitor, Moon, Sun } from 'lucide-react'
+import React from 'react'
 
-import type { Theme } from './types'
+import type { ThemePreference } from '../types'
 
 import { useTheme } from '..'
-import { defaultTheme, themeLocalStorageKey } from './types'
 
 export const ThemeSelector: React.FC = () => {
-  const { setTheme } = useTheme()
-  const [value, setValue] = useState('')
-
-  const onThemeChange = (themeToSet: Theme) => {
-    setTheme(themeToSet)
-    setValue(themeToSet)
-  }
+  const { setTheme, theme } = useTheme()
+  const [mounted, setMounted] = React.useState(false)
 
   React.useEffect(() => {
-    const preference = window.localStorage.getItem(themeLocalStorageKey)
-    setValue(preference ?? defaultTheme)
+    setMounted(true)
   }, [])
 
+  const activeTheme: ThemePreference = theme ?? 'system'
+  const nextTheme: Record<ThemePreference, ThemePreference> = {
+    dark: 'system',
+    light: 'dark',
+    system: 'light',
+  }
+
+  const Icon = mounted
+    ? activeTheme === 'light'
+      ? Sun
+      : activeTheme === 'dark'
+        ? Moon
+        : Monitor
+    : Monitor
+
+  const label = `Tema: ${mounted ? activeTheme : 'system'}`
+
   return (
-    <Select onValueChange={onThemeChange} value={value}>
-      <SelectTrigger
-        aria-label="Elegir tema"
-        className="theme-select"
-      >
-        <SelectValue placeholder="Tema" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="light">
-          <Sun aria-hidden />
-          Claro
-        </SelectItem>
-        <SelectItem value="dark">
-          <Moon aria-hidden />
-          Oscuro
-        </SelectItem>
-      </SelectContent>
-    </Select>
+    <button
+      aria-label={label}
+      className="theme-toggle"
+      onClick={() => setTheme(nextTheme[activeTheme])}
+      title={label}
+      type="button"
+    >
+      <Icon aria-hidden className="w-5" />
+    </button>
   )
 }

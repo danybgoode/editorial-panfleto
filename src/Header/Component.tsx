@@ -20,13 +20,21 @@ export async function Header() {
       },
     },
   })
+  const now = new Date()
   const dateLabel = new Intl.DateTimeFormat('es-MX', {
     day: 'numeric',
     month: 'long',
     timeZone: 'America/Mexico_City',
     weekday: 'long',
     year: 'numeric',
-  }).format(new Date())
+  }).format(now)
 
-  return <HeaderClient data={headerData} dateLabel={dateLabel} sections={sections.docs} />
+  return (
+    <HeaderClient
+      data={headerData}
+      dateLabel={dateLabel}
+      dateTime={now.toISOString()}
+      sections={sections.docs}
+    />
+  )
 }
