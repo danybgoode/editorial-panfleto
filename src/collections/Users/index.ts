@@ -1,6 +1,7 @@
 import type { CollectionAfterChangeHook, CollectionConfig, PayloadRequest } from 'payload'
 
 import { adminFieldOnly, adminOnly, isAdmin, isEditor, isWriter } from '../../access/roles'
+import { renderSystemEmail } from '@/email/systemEmail'
 import {
   createFirstUserAsAdmin,
   preventLastAdminDelete,
@@ -9,14 +10,6 @@ import {
 import { getServerSideURL } from '@/utilities/getURL'
 
 type UserRole = 'admin' | 'editor' | 'writer'
-
-const escapeHTML = (value: string) =>
-  value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
 
 const getRoleInstructions = (role?: UserRole | null) => {
   if (role === 'admin') {
@@ -43,34 +36,29 @@ const inviteEmailHTML = ({
 }) => {
   const baseURL = req?.origin || getServerSideURL()
   const resetURL = `${baseURL}/admin/reset/${token}`
-  const logoURL = `${baseURL}/logo-horizontal-dark.svg`
-  const greeting = user?.name ? `Hola ${escapeHTML(user.name)},` : 'Hola,'
-  const safeLogoURL = escapeHTML(logoURL)
-  const safeResetURL = escapeHTML(resetURL)
+  const greeting = user?.name ? `Hola ${user.name},` : 'Hola,'
   const roleInstructions = getRoleInstructions(user?.role)
 
-  return `
-    <div style="font-family: Arial, Helvetica, sans-serif; line-height: 1.55; color: #171513; background: #ffffff; max-width: 620px; margin: 0 auto; padding: 28px 24px;">
-      <div style="padding-bottom: 18px; border-bottom: 1px solid #e6e0d8; margin-bottom: 24px;">
-        <img src="${safeLogoURL}" alt="Editorial Panfleto" width="180" style="display: block; width: 180px; max-width: 100%; height: auto;" />
-      </div>
-      <p style="margin: 0 0 16px;">${greeting}</p>
-      <p style="margin: 0 0 16px;">Tu cuenta en <strong>Editorial Panfleto</strong> ya está lista. Para entrar al panel editorial, crea tu contraseña con el botón de abajo.</p>
-      <p style="margin: 0 0 20px;">
-        <a href="${safeResetURL}" style="display: inline-block; background: #171513; color: #ffffff; padding: 12px 18px; text-decoration: none; font-weight: 700; border-radius: 4px;">
-          Crear contraseña e iniciar sesión
-        </a>
-      </p>
-      <p style="margin: 0 0 8px;">También puedes copiar y pegar este enlace en tu navegador:</p>
-      <p style="margin: 0 0 16px; word-break: break-word;"><a href="${safeResetURL}" style="color: #171513;">${safeResetURL}</a></p>
-      <p style="margin: 0 0 24px;">${roleInstructions}</p>
-      <p style="margin: 0;">Bienvenido,<br/>Editorial Panfleto</p>
-    </div>
-  `
+  return renderSystemEmail({
+    action: {
+      href: resetURL,
+      label: 'Crear contrasena e iniciar sesion',
+    },
+    body: [
+      'Tu cuenta en Editorial Panfleto ya esta lista. Crea tu contrasena para activar el acceso al panel editorial.',
+      roleInstructions,
+    ],
+    eyebrow: 'Invitacion al espacio editorial',
+    greeting,
+    req,
+    title: 'Activa tu espacio de trabajo',
+  })
 }
 
 const sendUserInvite: CollectionAfterChangeHook = async ({ doc, operation, req }) => {
-  if (operation !== 'create' || !isAdmin(req.user) || !doc.email) return doc
+  if (operation !== 'create' || !isAdmin(req.user) || doc.role !== 'writer' || !doc.email) {
+    return doc
+  }
 
   const token = await req.payload.forgotPassword({
     collection: 'users',

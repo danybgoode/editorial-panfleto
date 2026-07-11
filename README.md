@@ -38,6 +38,8 @@ Payload admin runs at `http://localhost:3000/admin`.
 - `S3_FORCE_PATH_STYLE`: use `true` for Cloudflare R2.
 - `S3_ACCESS_KEY_ID`: R2 S3 access key ID.
 - `S3_SECRET_ACCESS_KEY`: R2 S3 secret access key.
+- `RESEND_API_KEY`: Resend API key used by Payload transactional email.
+- `RESEND_FROM_ADDRESS`: verified sender address for workspace invitations and assignment notices.
 
 Never commit `.env` or production secrets.
 
@@ -115,6 +117,7 @@ Collections:
 - Users
 - Media
 - Articles
+- Tasks
 - Authors
 - Sections
 - Tags
@@ -122,6 +125,8 @@ Collections:
 - Pages
 
 Articles support drafts, versions, autosave, Lexical rich text, featured images, galleries, author/co-author relationships, sections, tags, article type, editorial status, SEO fields, print notes, optional issue relationship, breaking-news flags, featured-story flags, and related articles.
+
+Tasks support assignment title, rich-text requirements, deadline, lifecycle status, writer/editor assignee, optional linked article, dashboard status lists, assignment notifications, and writer-scoped access.
 
 ## Roles
 
@@ -174,6 +179,7 @@ Miniflux automation uses `/api/miniflux/cron-trigger` as the authenticated dispa
 - Add `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`.
 - Add `PREVIEW_SECRET`.
 - Add the Cloudflare R2 / S3 environment variables listed above.
+- Add `RESEND_API_KEY` and `RESEND_FROM_ADDRESS` for transactional email.
 - Confirm R2 CORS allows PUT requests from the production and preview domains.
 - Redeploy after environment variable changes.
 - Confirm production database migrations run successfully.
