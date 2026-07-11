@@ -25,6 +25,8 @@ const getRoleInstructions = (role?: UserRole | null) => {
 
 const inviteEmailSubject = () => 'Tu acceso a Editorial Panfleto'
 
+const shouldSendWorkspaceInvite = (role?: UserRole | null) => role === 'writer' || role === 'editor'
+
 const inviteEmailHTML = ({
   req,
   token,
@@ -56,7 +58,7 @@ const inviteEmailHTML = ({
 }
 
 const sendUserInvite: CollectionAfterChangeHook = async ({ doc, operation, req }) => {
-  if (operation !== 'create' || !isAdmin(req.user) || doc.role !== 'writer' || !doc.email) {
+  if (operation !== 'create' || !isAdmin(req.user) || !shouldSendWorkspaceInvite(doc.role) || !doc.email) {
     return doc
   }
 
