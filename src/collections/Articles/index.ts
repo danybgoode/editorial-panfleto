@@ -317,6 +317,18 @@ export const Articles: CollectionConfig<'articles'> = {
       label: 'Breaking news',
     },
     {
+      name: 'trendingMultiplier',
+      type: 'number',
+      admin: {
+        description: 'Boost or dampen this story in Redis-backed top-news ranking.',
+        position: 'sidebar',
+      },
+      defaultValue: 1,
+      label: 'Trending multiplier',
+      max: 10,
+      min: 0,
+    },
+    {
       name: 'owner',
       type: 'relationship',
       admin: {

@@ -4,6 +4,7 @@ import React from 'react'
 
 import { ArticleCard } from '@/components/Editorial/ArticleCard'
 import { SectionHeading } from '@/components/Editorial/SectionHeading'
+import { getTrendingArticles } from '@/lib/trending/ranking'
 import type { Article } from '@/payload-types'
 import {
   articleTypes,
@@ -30,12 +31,13 @@ const articleSelect = {
   section: true,
   slug: true,
   summary: true,
+  trendingMultiplier: true,
   updatedDate: true,
 } as const
 
 export default async function HomePage() {
   const payload = await getPayload({ config: configPromise })
-  const [featured, latest, breaking, sections, opinion, feature] = await Promise.all([
+  const [featured, latest, breaking, sections, opinion, feature, trending] = await Promise.all([
     payload.find({
       collection: 'articles',
       depth: 2,
@@ -114,6 +116,7 @@ export default async function HomePage() {
         },
       },
     }),
+    getTrendingArticles({ payload, limit: 4 }).catch(() => []),
   ])
 
   const lead = (featured.docs[0] || latest.docs[0]) as Article | undefined
@@ -121,6 +124,7 @@ export default async function HomePage() {
   const supportStories = latestWithoutLead.slice(0, 4)
   const latestStream = latestWithoutLead.slice(4, 10)
   const featureStory = feature.docs.find((article) => article.id !== lead?.id) as Article | undefined
+  const trendingStories = trending.filter((article) => article.id !== lead?.id).slice(0, 4)
 
   const sectionModules = await Promise.all(
     sections.docs.slice(0, 4).map(async (section) => {
@@ -191,6 +195,17 @@ export default async function HomePage() {
           <SectionHeading eyebrow="Cronología">Últimos artículos</SectionHeading>
           <div className="home-river__list">
             {latestStream.map((article) => (
+              <ArticleCard article={article} key={article.id} variant="stream" />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {trendingStories.length > 0 && (
+        <section className="home-river ep-container">
+          <SectionHeading eyebrow="Lecturas">Más leído ahora</SectionHeading>
+          <div className="home-river__list">
+            {trendingStories.map((article) => (
               <ArticleCard article={article} key={article.id} variant="stream" />
             ))}
           </div>
