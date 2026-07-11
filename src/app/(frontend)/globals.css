@@ -523,14 +523,6 @@
   aspect-ratio: 16 / 10;
 }
 
-.editorial-card__image img {
-  transition: transform 180ms ease;
-}
-
-.editorial-card:hover .editorial-card__image img {
-  transform: scale(1.015);
-}
-
 .editorial-card__body {
   display: grid;
   gap: 0.55rem;

@@ -55,15 +55,45 @@ if (useS3Storage && !hasS3Config) {
 export default buildConfig({
   admin: {
     components: {
+      graphics: {
+        Icon: '@/components/AdminBranding#PanfletoAdminIcon',
+        Logo: '@/components/AdminBranding#PanfletoAdminLogo',
+      },
       // The `BeforeLogin` component renders a message that you see while logging into your admin panel.
       // Feel free to delete this at any time. Simply remove the line below.
       beforeLogin: ['@/components/BeforeLogin'],
-      // The `BeforeDashboard` component renders the 'welcome' block that you see after logging into your admin panel.
-      // Feel free to delete this at any time. Simply remove the line below.
-      beforeDashboard: ['@/components/BeforeDashboard'],
+      views: {
+        dashboard: {
+          Component: '@/components/EditorialDashboard',
+          meta: {
+            title: 'Workflow board',
+          },
+        },
+      },
     },
     importMap: {
       baseDir: path.resolve(dirname),
+    },
+    meta: {
+      defaultOGImageType: 'off',
+      icons: [
+        {
+          rel: 'icon',
+          type: 'image/svg+xml',
+          url: '/favicon.svg',
+        },
+        {
+          rel: 'icon',
+          sizes: '32x32',
+          type: 'image/png',
+          url: '/favicon-32x32.png',
+        },
+      ],
+      openGraph: {
+        siteName: 'Panfleto',
+        title: 'Panfleto',
+      },
+      titleSuffix: '| Panfleto',
     },
     user: Users.slug,
     livePreview: {
