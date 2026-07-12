@@ -1950,6 +1950,9 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
  */
 export interface Header {
   id: number;
+  /**
+   * Optional links shown after the primary section navigation. Main section links are managed in Editorial / Sections.
+   */
   navItems?:
     | {
         link: {
@@ -1979,6 +1982,9 @@ export interface Header {
  */
 export interface Footer {
   id: number;
+  /**
+   * Optional links shown in the footer information column. Main section links are managed in Editorial / Sections.
+   */
   navItems?:
     | {
         link: {

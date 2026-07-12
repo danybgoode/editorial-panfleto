@@ -68,6 +68,28 @@ describe('post-implementation polish safeguards', () => {
     await expect(Promise.resolve(Footer.access?.update?.(args))).resolves.toBe(true)
   })
 
+  it('makes section-owned navigation explicit in header and footer globals', () => {
+    const headerNavItems = Header.fields.find(
+      (field) => 'name' in field && field.name === 'navItems',
+    )
+    const footerNavItems = Footer.fields.find(
+      (field) => 'name' in field && field.name === 'navItems',
+    )
+
+    expect(Header.fields.some((field) => 'name' in field && field.name === 'sectionNavNotice')).toBe(
+      true,
+    )
+    expect(Footer.fields.some((field) => 'name' in field && field.name === 'sectionNavNotice')).toBe(
+      true,
+    )
+    expect(headerNavItems && 'label' in headerNavItems ? headerNavItems.label : '').toBe(
+      'Supplemental nav items',
+    )
+    expect(footerNavItems && 'label' in footerNavItems ? footerNavItems.label : '').toBe(
+      'Supplemental nav items',
+    )
+  })
+
   it('summarizes the next Miniflux sync from existing mapping state', () => {
     expect(
       getNextScheduledSyncLabel({

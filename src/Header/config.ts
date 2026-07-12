@@ -15,8 +15,18 @@ export const Header: GlobalConfig = {
   },
   fields: [
     {
+      name: 'sectionNavNotice',
+      type: 'ui',
+      admin: {
+        components: {
+          Field: '@/components/GlobalSectionNavNotice',
+        },
+      },
+    },
+    {
       name: 'navItems',
       type: 'array',
+      label: 'Supplemental nav items',
       fields: [
         link({
           appearances: false,
@@ -24,6 +34,8 @@ export const Header: GlobalConfig = {
       ],
       maxRows: 6,
       admin: {
+        description:
+          'Optional links shown after the primary section navigation. Main section links are managed in Editorial / Sections.',
         initCollapsed: true,
         components: {
           RowLabel: '@/Header/RowLabel#RowLabel',
