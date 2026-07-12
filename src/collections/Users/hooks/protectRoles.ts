@@ -67,3 +67,23 @@ export const preventLastAdminDelete: CollectionBeforeDeleteHook = async ({ req, 
     throw new Error('At least one admin account must remain.')
   }
 }
+
+export const preventAssignedTaskOrphans: CollectionBeforeDeleteHook = async ({ req, id }) => {
+  const assignedTasks = await req.payload.find({
+    collection: 'tasks',
+    depth: 0,
+    limit: 1,
+    overrideAccess: true,
+    pagination: false,
+    req,
+    where: {
+      assignedTo: {
+        equals: id,
+      },
+    },
+  })
+
+  if (assignedTasks.docs.length > 0) {
+    throw new Error('Cannot delete this user while they have assigned tasks. Reassign tasks first.')
+  }
+}

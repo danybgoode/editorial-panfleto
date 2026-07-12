@@ -941,7 +941,14 @@ export interface MinifluxMapping {
   section: number | Section;
   defaultAuthor: number | Author;
   fetchLimit: number;
+  /**
+   * Active: crawled automatically once per day by the external scheduler. New content is safely ingested as Draft. Paused: automated sweeps are suspended, while manual fetching remains available below.
+   */
   enabled?: boolean | null;
+  /**
+   * Read-only estimate based on the daily external Upstash trigger and the last recorded sync.
+   */
+  nextScheduledSync?: string | null;
   active?: boolean | null;
   lastSynced?: string | null;
   lastSyncAt?: string | null;
@@ -1652,6 +1659,7 @@ export interface MinifluxMappingsSelect<T extends boolean = true> {
   defaultAuthor?: T;
   fetchLimit?: T;
   enabled?: T;
+  nextScheduledSync?: T;
   active?: T;
   lastSynced?: T;
   lastSyncAt?: T;

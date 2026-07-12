@@ -1,7 +1,23 @@
 import type { Payload } from 'payload'
 
 import type { Article } from '../../payload-types'
-import { getArticleViewCounts } from './redis'
+import { getArticleViewCount, getArticleViewCounts } from './redis'
+
+export const getArticleAgeHours = ({
+  now = new Date(),
+  publishedAt,
+}: {
+  now?: Date
+  publishedAt?: null | string
+}) => {
+  const publishedTime = publishedAt ? new Date(publishedAt).getTime() : now.getTime()
+
+  if (Number.isNaN(publishedTime)) {
+    return 0
+  }
+
+  return Math.max(0, (now.getTime() - publishedTime) / (1000 * 60 * 60))
+}
 
 export const getTrendingScore = ({
   multiplier = 1,
@@ -14,10 +30,47 @@ export const getTrendingScore = ({
   publishedAt?: null | string
   views: number
 }) => {
-  const publishedTime = publishedAt ? new Date(publishedAt).getTime() : now.getTime()
-  const ageHours = Math.max(0, (now.getTime() - publishedTime) / (1000 * 60 * 60))
+  const ageHours = getArticleAgeHours({ now, publishedAt })
 
   return (views / Math.pow(ageHours + 2, 1.5)) * (multiplier || 1)
+}
+
+export const getArticleTrendingMetrics = async ({
+  article,
+  now = new Date(),
+}: {
+  article: Pick<Article, 'id' | 'publishedAt' | 'trendingMultiplier'>
+  now?: Date
+}) => {
+  const rawViews24h = await getArticleViewCount({
+    articleId: article.id,
+    days: 1,
+    now,
+  })
+  const viewsUsedForRank = await getArticleViewCount({
+    articleId: article.id,
+    days: 2,
+    now,
+  })
+  const ageHours = getArticleAgeHours({
+    now,
+    publishedAt: article.publishedAt,
+  })
+  const multiplier = article.trendingMultiplier || 1
+  const score = getTrendingScore({
+    multiplier,
+    now,
+    publishedAt: article.publishedAt,
+    views: viewsUsedForRank,
+  })
+
+  return {
+    ageHours,
+    multiplier,
+    rawViews24h,
+    score,
+    viewsUsedForRank,
+  }
 }
 
 export const getTrendingArticles = async ({

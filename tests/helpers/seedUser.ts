@@ -13,9 +13,10 @@ export const testUser = {
 export async function seedTestUser(): Promise<void> {
   const payload = await getPayload({ config })
 
-  // Delete existing test user if any
-  await payload.delete({
+  const existing = await payload.find({
     collection: 'users',
+    limit: 1,
+    overrideAccess: true,
     where: {
       email: {
         equals: testUser.email,
@@ -23,10 +24,22 @@ export async function seedTestUser(): Promise<void> {
     },
   })
 
+  if (existing.docs[0]) {
+    await payload.update({
+      id: existing.docs[0].id,
+      collection: 'users',
+      data: testUser,
+      overrideAccess: true,
+    })
+
+    return
+  }
+
   // Create fresh test user
   await payload.create({
     collection: 'users',
     data: testUser,
+    overrideAccess: true,
   })
 }
 
@@ -38,6 +51,7 @@ export async function cleanupTestUser(): Promise<void> {
 
   await payload.delete({
     collection: 'users',
+    overrideAccess: true,
     where: {
       email: {
         equals: testUser.email,

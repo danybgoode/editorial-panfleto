@@ -22,6 +22,8 @@ const getRedisConfig = () => {
   }
 }
 
+export const isTrendingRedisConfigured = () => Boolean(getRedisConfig())
+
 export const getViewsKeyForDate = (date = new Date()) =>
   `${VIEW_KEY_PREFIX}:${date.toISOString().slice(0, 10)}`
 
@@ -95,4 +97,27 @@ export const getArticleViewCounts = async ({
   }
 
   return counts
+}
+
+export const getArticleViewCount = async ({
+  articleId,
+  days = 1,
+  now = new Date(),
+}: {
+  articleId: number | string
+  days?: number
+  now?: Date
+}) => {
+  const keys = getRecentViewsKeys(days, now)
+  const results = await redisPipeline<null | number | string>(
+    keys.map((key) => ['ZSCORE', key, String(articleId)]),
+  )
+
+  return results.reduce((total, response) => {
+    if (response.error || response.result === null || typeof response.result === 'undefined') {
+      return total
+    }
+
+    return total + Number(response.result || 0)
+  }, 0)
 }

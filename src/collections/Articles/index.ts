@@ -329,6 +329,16 @@ export const Articles: CollectionConfig<'articles'> = {
       min: 0,
     },
     {
+      name: 'trendingMetrics',
+      type: 'ui',
+      admin: {
+        components: {
+          Field: '@/components/TrendingMetricsPanel',
+        },
+        position: 'sidebar',
+      },
+    },
+    {
       name: 'owner',
       type: 'relationship',
       admin: {
