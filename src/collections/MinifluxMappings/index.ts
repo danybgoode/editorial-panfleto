@@ -1,4 +1,4 @@
-import type { CollectionBeforeValidateHook, CollectionConfig } from 'payload'
+import type { CollectionBeforeValidateHook, CollectionConfig, FieldHook } from 'payload'
 
 import { adminOnly, adminOrEditor } from '../../access/roles'
 
@@ -13,6 +13,42 @@ const setMinifluxTargetKey: CollectionBeforeValidateHook = ({ data }) => {
 
   return data
 }
+
+type SyncScheduleSource = {
+  active?: boolean | null
+  enabled?: boolean | null
+  lastSyncAt?: null | string
+  lastSynced?: null | string
+}
+
+export const getNextScheduledSyncLabel = (mapping?: SyncScheduleSource | null) => {
+  if (mapping?.enabled === false || mapping?.active === false) {
+    return 'Paused. Automated background sweeps are suspended for this source.'
+  }
+
+  const lastSync = mapping?.lastSynced || mapping?.lastSyncAt
+
+  if (!lastSync) {
+    return 'Expected on the next daily Upstash scheduler run.'
+  }
+
+  const nextSync = new Date(lastSync)
+
+  if (Number.isNaN(nextSync.getTime())) {
+    return 'Expected on the next daily Upstash scheduler run.'
+  }
+
+  nextSync.setUTCDate(nextSync.getUTCDate() + 1)
+
+  return `Expected around ${new Intl.DateTimeFormat('en-US', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'UTC',
+  }).format(nextSync)} UTC.`
+}
+
+const populateNextScheduledSync: FieldHook = ({ siblingData }) =>
+  getNextScheduledSyncLabel(siblingData as SyncScheduleSource)
 
 export const MinifluxMappings: CollectionConfig = {
   slug: 'miniflux-mappings',
@@ -106,6 +142,24 @@ export const MinifluxMappings: CollectionConfig = {
       type: 'checkbox',
       defaultValue: true,
       label: 'Enabled',
+      admin: {
+        description:
+          'Active: crawled automatically once per day by the external scheduler. New content is safely ingested as Draft. Paused: automated sweeps are suspended, while manual fetching remains available below.',
+      },
+    },
+    {
+      name: 'nextScheduledSync',
+      type: 'text',
+      hooks: {
+        afterRead: [populateNextScheduledSync],
+      },
+      label: 'Next scheduled sync',
+      virtual: true,
+      admin: {
+        description:
+          'Read-only estimate based on the daily external Upstash trigger and the last recorded sync.',
+        readOnly: true,
+      },
     },
     {
       name: 'active',

@@ -4,6 +4,7 @@ import { adminFieldOnly, adminOnly, isAdmin, isEditor, isWriter } from '../../ac
 import { renderSystemEmail } from '@/email/systemEmail'
 import {
   createFirstUserAsAdmin,
+  preventAssignedTaskOrphans,
   preventLastAdminDelete,
   preventLastAdminRoleRemoval,
 } from './hooks/protectRoles'
@@ -154,7 +155,7 @@ export const Users: CollectionConfig = {
   hooks: {
     afterChange: [sendUserInvite],
     beforeChange: [createFirstUserAsAdmin, preventLastAdminRoleRemoval],
-    beforeDelete: [preventLastAdminDelete],
+    beforeDelete: [preventLastAdminDelete, preventAssignedTaskOrphans],
   },
   timestamps: true,
 }
