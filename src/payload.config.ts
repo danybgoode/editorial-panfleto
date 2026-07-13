@@ -130,7 +130,7 @@ export default buildConfig({
   }),
   email: resendAdapter({
     defaultFromAddress: process.env.RESEND_FROM_ADDRESS || 'onboarding@resend.dev',
-    defaultFromName: 'PANFLETO',
+    defaultFromName: 'Panfleto',
     apiKey: process.env.RESEND_API_KEY || '',
   }),
   collections: [Users, Media, Articles, Tasks, Authors, Sections, Tags, Issues, Pages, MinifluxMappings],

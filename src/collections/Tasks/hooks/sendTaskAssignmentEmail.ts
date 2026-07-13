@@ -13,7 +13,7 @@ const isAssignedUser = (value: unknown): value is AssignedUser =>
   Boolean(value && typeof value === 'object' && 'email' in value)
 
 const formatDeadline = (deadline?: string | null) => {
-  if (!deadline) return 'Sin fecha limite asignada.'
+  if (!deadline) return 'Sin fecha límite asignada.'
 
   return new Intl.DateTimeFormat('es-MX', {
     dateStyle: 'full',
@@ -52,18 +52,18 @@ export const sendTaskAssignmentEmail: CollectionAfterChangeHook = async ({
 
   await req.payload.sendEmail({
     to: assignedTo.email,
-    subject: `Nueva asignacion: ${doc.title}`,
+    subject: `Nueva asignación: ${doc.title}`,
     html: renderSystemEmail({
       action: {
         href: taskURL,
-        label: 'Abrir asignacion',
+        label: 'Abrir asignación',
       },
       body: [
-        `Tienes una nueva asignacion en el espacio editorial: ${doc.title}.`,
-        requirements || 'Los requisitos completos estan disponibles en el panel editorial.',
+        `Tienes una nueva asignación en el espacio editorial: ${doc.title}.`,
+        requirements || 'Los requisitos completos están disponibles en el panel editorial.',
         `Fecha de entrega: ${formatDeadline(doc.deadline)}`,
       ],
-      eyebrow: 'Nueva asignacion',
+      eyebrow: 'Nueva asignación',
       greeting,
       req,
       title: doc.title,
