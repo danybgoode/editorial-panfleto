@@ -6,7 +6,7 @@ import type {
 } from 'payload'
 
 import { adminFieldOnly, adminOnly, isAdmin, isEditor, isWriter } from '../../access/roles'
-import { renderSystemEmail } from '@/email/systemEmail'
+import { escapeHTML, renderSystemEmail } from '@/email/systemEmail'
 import {
   createFirstUserAsAdmin,
   preventAssignedTaskOrphans,
@@ -19,44 +19,26 @@ type UserRole = 'admin' | 'editor' | 'writer'
 
 const getRoleInviteIntro = (role?: UserRole | null) => {
   if (role === 'admin') {
-    return {
-      segments: [
-        'Te invitamos a administrar ',
-        { strong: 'PANFLETO' },
-        '. Tu cuenta ya está lista; solo necesitas crear tu contraseña para entrar al panel editorial.',
-      ],
-    }
+    return 'Te invitamos a administrar <strong>PANFLETO</strong>. Tu cuenta ya está lista; solo necesitas crear tu contraseña para entrar al panel editorial.'
   }
 
   if (role === 'editor') {
-    return {
-      segments: [
-        'Te invitamos a editar en ',
-        { strong: 'PANFLETO' },
-        '. Tu cuenta ya está lista; solo necesitas crear tu contraseña para entrar al panel editorial.',
-      ],
-    }
+    return 'Te invitamos a editar en <strong>PANFLETO</strong>. Tu cuenta ya está lista; solo necesitas crear tu contraseña para entrar al panel editorial.'
   }
 
-  return {
-    segments: [
-      'Te invitamos a escribir en ',
-      { strong: 'PANFLETO' },
-      '. Tu cuenta ya está lista; solo necesitas crear tu contraseña para entrar al panel editorial.',
-    ],
-  }
+  return 'Te invitamos a escribir en <strong>PANFLETO</strong>. Tu cuenta ya está lista; solo necesitas crear tu contraseña para entrar al panel editorial.'
 }
 
 const getRoleInstructions = (role?: UserRole | null) => {
   if (role === 'admin') {
-    return 'Podrás gestionar usuarios, configuración editorial y todo el contenido publicado en el sitio.'
+    return 'Cuando entres, podrás gestionar usuarios, configuración editorial y todo el contenido publicado en el sitio.'
   }
 
   if (role === 'editor') {
-    return 'Podrás revisar borradores, editar piezas y coordinar su publicación cuando estén listas.'
+    return 'Cuando entres, podrás revisar borradores, editar piezas y coordinar su publicación cuando estén listas.'
   }
 
-  return 'Podrás crear borradores y enviarlos a revisión. Un editor se encargará de publicar cuando el texto esté listo.'
+  return 'Cuando entres, podrás crear borradores y enviarlos a revisión. Un editor se encargará de publicar cuando el texto esté listo.'
 }
 
 const getOnboardingBody = (role?: UserRole | null) => {
@@ -83,7 +65,7 @@ const getOnboardingBody = (role?: UserRole | null) => {
   ]
 }
 
-export const inviteEmailSubject = () => 'Tu acceso a Panfleto'
+export const inviteEmailSubject = () => 'Tu acceso a PANFLETO'
 
 export const resetPasswordEmailSubject = () => 'Restablece tu contraseña de Panfleto'
 
@@ -100,19 +82,23 @@ export const inviteEmailHTML = ({
   const resetURL = `${baseURL}/admin/reset/${token}`
   const greeting = user?.name ? `Hola ${user.name},` : 'Hola,'
   const roleInstructions = getRoleInstructions(user?.role)
+  const safeResetURL = escapeHTML(resetURL)
 
-  return renderSystemEmail({
-    action: {
-      href: resetURL,
-      label: 'Crear contraseña e iniciar sesión',
-    },
-    body: [getRoleInviteIntro(user?.role), roleInstructions, 'Bienvenido/a, Equipo PANFLETO'],
-    eyebrow: 'Invitación al espacio editorial',
-    greeting,
-    req,
-    showFooter: false,
-    title: 'Activa tu acceso a Panfleto',
-  })
+  return `
+    <div style="font-family:Arial,sans-serif;line-height:1.55;color:#171513;max-width:760px;">
+      <p>${escapeHTML(greeting)}</p>
+      <p>${getRoleInviteIntro(user?.role)}</p>
+      <p>
+        <a href="${safeResetURL}" style="display:inline-block;background:#ffffff;color:#171513;padding:12px 16px;text-decoration:none;font-weight:700;border:2px solid #171513;border-radius:4px;">
+          Crear contraseña e iniciar sesión
+        </a>
+      </p>
+      <p>También puedes copiar y pegar este enlace en tu navegador:</p>
+      <p><a href="${safeResetURL}">${safeResetURL}</a></p>
+      <p>${escapeHTML(roleInstructions)}</p>
+      <p>Bienvenido/a,<br/>Equipo PANFLETO</p>
+    </div>
+  `
 }
 
 export const resetPasswordEmailHTML = ({

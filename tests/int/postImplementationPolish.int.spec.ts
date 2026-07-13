@@ -127,7 +127,7 @@ describe('post-implementation polish safeguards', () => {
     expect(sendEmail).toHaveBeenCalledTimes(3)
     expect(sendEmail).toHaveBeenCalledWith(
       expect.objectContaining({
-        subject: 'Tu acceso a Panfleto',
+        subject: 'Tu acceso a PANFLETO',
         to: 'writer@editorial.test',
       }),
     )
@@ -149,8 +149,13 @@ describe('post-implementation polish safeguards', () => {
     expect(html).toContain('Te invitamos a escribir en')
     expect(html).toContain('<strong>PANFLETO</strong>')
     expect(html).toContain('solo necesitas crear tu contraseña')
-    expect(html).toContain('https://panfleto.example/icon-512.png')
+    expect(html).toContain('También puedes copiar y pegar este enlace en tu navegador:')
+    expect(html).toContain('Cuando entres, podrás crear borradores')
     expect(html).toContain('https://panfleto.example/admin/reset/reset-token')
+    expect(html).toContain('background:#ffffff')
+    expect(html).not.toContain('Activa tu acceso')
+    expect(html).not.toContain('Invitación al espacio editorial')
+    expect(html).not.toContain('icon-512.png')
     expect(html).not.toContain('Mesa de operaciones editoriales')
   })
 
