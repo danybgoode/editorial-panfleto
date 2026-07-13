@@ -169,6 +169,7 @@ export interface User {
   id: number;
   name?: string | null;
   role: 'admin' | 'editor' | 'writer';
+  onboardingEmailSentAt?: string | null;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -1257,6 +1258,7 @@ export interface PayloadMigration {
 export interface UsersSelect<T extends boolean = true> {
   name?: T;
   role?: T;
+  onboardingEmailSentAt?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;

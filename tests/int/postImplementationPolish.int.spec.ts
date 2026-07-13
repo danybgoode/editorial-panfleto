@@ -2,7 +2,13 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { Footer } from '@/Footer/config'
 import { Header } from '@/Header/config'
-import { sendUserInvite } from '@/collections/Users'
+import {
+  inviteEmailHTML,
+  onboardingEmailHTML,
+  resetPasswordEmailHTML,
+  sendOnboardingEmailAfterPasswordSetup,
+  sendUserInvite,
+} from '@/collections/Users'
 import { preventAssignedTaskOrphans } from '@/collections/Users/hooks/protectRoles'
 import { getNextScheduledSyncLabel } from '@/collections/MinifluxMappings'
 import { getArticleAgeHours, getTrendingScore } from '@/lib/trending/ranking'
@@ -56,6 +62,7 @@ describe('post-implementation polish safeguards', () => {
 
   it('sends invite reset emails for every admin-created user role', async () => {
     const forgotPassword = vi.fn().mockResolvedValue('reset-token')
+    const sendEmail = vi.fn().mockResolvedValue(undefined)
     const logger = {
       info: vi.fn(),
     }
@@ -63,6 +70,7 @@ describe('post-implementation polish safeguards', () => {
       payload: {
         forgotPassword,
         logger,
+        sendEmail,
       },
       user: {
         role: 'admin',
@@ -92,6 +100,7 @@ describe('post-implementation polish safeguards', () => {
         data: {
           email: 'admin@editorial.test',
         },
+        disableEmail: true,
         overrideAccess: true,
       }),
     )
@@ -101,6 +110,7 @@ describe('post-implementation polish safeguards', () => {
         data: {
           email: 'editor@editorial.test',
         },
+        disableEmail: true,
         overrideAccess: true,
       }),
     )
@@ -110,9 +120,131 @@ describe('post-implementation polish safeguards', () => {
         data: {
           email: 'writer@editorial.test',
         },
+        disableEmail: true,
         overrideAccess: true,
       }),
     )
+    expect(sendEmail).toHaveBeenCalledTimes(3)
+    expect(sendEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        subject: 'Tu acceso a Panfleto',
+        to: 'writer@editorial.test',
+      }),
+    )
+  })
+
+  it('keeps writer invite email copy and branding intact', () => {
+    const html = inviteEmailHTML({
+      req: {
+        origin: 'https://panfleto.example',
+      },
+      token: 'reset-token',
+      user: {
+        name: 'Leroy',
+        role: 'writer',
+      },
+    } as never)
+
+    expect(html).toContain('Hola Leroy,')
+    expect(html).toContain('Te invitamos a escribir en')
+    expect(html).toContain('<strong>PANFLETO</strong>')
+    expect(html).toContain('solo necesitas crear tu contraseña')
+    expect(html).toContain('https://panfleto.example/icon-512.png')
+    expect(html).toContain('https://panfleto.example/admin/reset/reset-token')
+    expect(html).not.toContain('Mesa de operaciones editoriales')
+  })
+
+  it('keeps forgot password email separate from invite copy', () => {
+    const html = resetPasswordEmailHTML({
+      req: {
+        origin: 'https://panfleto.example',
+      },
+      token: 'reset-token',
+      user: {
+        name: 'Leroy',
+      },
+    } as never)
+
+    expect(html).toContain('Restablece tu contraseña')
+    expect(html).toContain('Recibimos una solicitud para restablecer tu contraseña de Panfleto.')
+    expect(html).toContain('Restablecer contraseña')
+    expect(html).not.toContain('Te invitamos a escribir')
+    expect(html).not.toContain('Activa tu acceso')
+  })
+
+  it('sends onboarding email once after password setup', async () => {
+    const sendEmail = vi.fn().mockResolvedValue(undefined)
+    const update = vi.fn().mockResolvedValue(undefined)
+    const logger = {
+      info: vi.fn(),
+    }
+
+    const result = {
+      user: {
+        id: 123,
+        email: 'writer@editorial.test',
+        name: 'Leroy',
+        role: 'writer',
+      },
+    }
+
+    await expect(
+      sendOnboardingEmailAfterPasswordSetup({
+        operation: 'resetPassword',
+        req: {
+          origin: 'https://panfleto.example',
+          payload: {
+            logger,
+            sendEmail,
+            update,
+          },
+        },
+        result,
+      } as never),
+    ).resolves.toBe(result)
+
+    expect(sendEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        subject: 'Primeros pasos en Panfleto',
+        to: 'writer@editorial.test',
+      }),
+    )
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 123,
+        collection: 'users',
+        data: {
+          onboardingEmailSentAt: expect.any(String),
+        },
+        overrideAccess: true,
+      }),
+    )
+  })
+
+  it('uses role-specific onboarding copy', () => {
+    expect(
+      onboardingEmailHTML({
+        user: {
+          role: 'admin',
+        },
+      }),
+    ).toContain('revisar usuarios, navegación, secciones')
+
+    expect(
+      onboardingEmailHTML({
+        user: {
+          role: 'editor',
+        },
+      }),
+    ).toContain('convertir borradores en piezas listas')
+
+    expect(
+      onboardingEmailHTML({
+        user: {
+          role: 'writer',
+        },
+      }),
+    ).toContain('crear borradores claros')
   })
 
   it('keeps header and footer globals manageable by admins', async () => {

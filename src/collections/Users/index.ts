@@ -1,4 +1,9 @@
-import type { CollectionAfterChangeHook, CollectionConfig, PayloadRequest } from 'payload'
+import type {
+  CollectionAfterChangeHook,
+  CollectionAfterOperationHook,
+  CollectionConfig,
+  PayloadRequest,
+} from 'payload'
 
 import { adminFieldOnly, adminOnly, isAdmin, isEditor, isWriter } from '../../access/roles'
 import { renderSystemEmail } from '@/email/systemEmail'
@@ -12,6 +17,36 @@ import { getServerSideURL } from '@/utilities/getURL'
 
 type UserRole = 'admin' | 'editor' | 'writer'
 
+const getRoleInviteIntro = (role?: UserRole | null) => {
+  if (role === 'admin') {
+    return {
+      segments: [
+        'Te invitamos a administrar ',
+        { strong: 'PANFLETO' },
+        '. Tu cuenta ya está lista; solo necesitas crear tu contraseña para entrar al panel editorial.',
+      ],
+    }
+  }
+
+  if (role === 'editor') {
+    return {
+      segments: [
+        'Te invitamos a editar en ',
+        { strong: 'PANFLETO' },
+        '. Tu cuenta ya está lista; solo necesitas crear tu contraseña para entrar al panel editorial.',
+      ],
+    }
+  }
+
+  return {
+    segments: [
+      'Te invitamos a escribir en ',
+      { strong: 'PANFLETO' },
+      '. Tu cuenta ya está lista; solo necesitas crear tu contraseña para entrar al panel editorial.',
+    ],
+  }
+}
+
 const getRoleInstructions = (role?: UserRole | null) => {
   if (role === 'admin') {
     return 'Podrás gestionar usuarios, configuración editorial y todo el contenido publicado en el sitio.'
@@ -24,9 +59,35 @@ const getRoleInstructions = (role?: UserRole | null) => {
   return 'Podrás crear borradores y enviarlos a revisión. Un editor se encargará de publicar cuando el texto esté listo.'
 }
 
-const inviteEmailSubject = () => 'Tu acceso a Editorial Panfleto'
+const getOnboardingBody = (role?: UserRole | null) => {
+  if (role === 'admin') {
+    return [
+      'Tu meta es dejar el espacio listo para que el equipo pueda publicar sin fricción.',
+      'Empieza por revisar usuarios, navegación, secciones y el contenido publicado. Desde ahí puedes ajustar permisos, crear estructura editorial y acompañar el flujo completo.',
+      'Prueba entrar al panel, abrir Usuarios y revisar una pieza publicada. Eso te dará el mapa básico de operación.',
+    ]
+  }
 
-const inviteEmailHTML = ({
+  if (role === 'editor') {
+    return [
+      'Tu meta es convertir borradores en piezas listas para publicar.',
+      'Empieza por revisar los artículos en cola, abrir las asignaciones activas y dejar comentarios o ajustes claros para quien escribe.',
+      'Prueba abrir el tablero editorial y mover una pieza por el flujo. Con eso verás dónde coordinar revisión, edición y publicación.',
+    ]
+  }
+
+  return [
+    'Tu meta es crear borradores claros y enviarlos a revisión cuando estén listos.',
+    'Empieza creando un artículo, elige su sección, guarda avances como borrador y envíalo a revisión cuando quieras que un editor lo lea.',
+    'Prueba abrir Artículos y crear tu primer borrador. No necesitas publicarlo: el panel está hecho para que puedas avanzar paso a paso.',
+  ]
+}
+
+export const inviteEmailSubject = () => 'Tu acceso a Panfleto'
+
+export const resetPasswordEmailSubject = () => 'Restablece tu contraseña de Panfleto'
+
+export const inviteEmailHTML = ({
   req,
   token,
   user,
@@ -43,16 +104,67 @@ const inviteEmailHTML = ({
   return renderSystemEmail({
     action: {
       href: resetURL,
-      label: 'Crear contrasena e iniciar sesion',
+      label: 'Crear contraseña e iniciar sesión',
     },
-    body: [
-      'Tu cuenta en Editorial Panfleto ya esta lista. Crea tu contrasena para activar el acceso al panel editorial.',
-      roleInstructions,
-    ],
-    eyebrow: 'Invitacion al espacio editorial',
+    body: [getRoleInviteIntro(user?.role), roleInstructions, 'Bienvenido/a, Equipo PANFLETO'],
+    eyebrow: 'Invitación al espacio editorial',
     greeting,
     req,
-    title: 'Activa tu espacio de trabajo',
+    showFooter: false,
+    title: 'Activa tu acceso a Panfleto',
+  })
+}
+
+export const resetPasswordEmailHTML = ({
+  req,
+  token,
+  user,
+}: {
+  req?: PayloadRequest
+  token?: string
+  user?: { name?: string | null }
+}) => {
+  const baseURL = req?.origin || getServerSideURL()
+  const resetURL = `${baseURL}/admin/reset/${token}`
+  const greeting = user?.name ? `Hola ${user.name},` : 'Hola,'
+
+  return renderSystemEmail({
+    action: {
+      href: resetURL,
+      label: 'Restablecer contraseña',
+    },
+    body: [
+      'Recibimos una solicitud para restablecer tu contraseña de Panfleto.',
+      'Si fuiste tú, usa este enlace para crear una nueva contraseña. Si no solicitaste el cambio, puedes ignorar este correo.',
+    ],
+    eyebrow: 'Seguridad de la cuenta',
+    greeting,
+    req,
+    title: 'Restablece tu contraseña',
+  })
+}
+
+export const onboardingEmailHTML = ({
+  req,
+  user,
+}: {
+  req?: PayloadRequest
+  user?: { name?: string | null; role?: UserRole | null }
+}) => {
+  const baseURL = req?.origin || getServerSideURL()
+  const dashboardURL = `${baseURL}/admin`
+  const greeting = user?.name ? `Hola ${user.name},` : 'Hola,'
+
+  return renderSystemEmail({
+    action: {
+      href: dashboardURL,
+      label: 'Abrir panel',
+    },
+    body: getOnboardingBody(user?.role),
+    eyebrow: 'Primeros pasos',
+    greeting,
+    req,
+    title: 'Bienvenido/a a Panfleto',
   })
 }
 
@@ -66,6 +178,7 @@ export const sendUserInvite: CollectionAfterChangeHook = async ({ doc, operation
     data: {
       email: doc.email,
     },
+    disableEmail: true,
     overrideAccess: true,
     req,
   })
@@ -74,12 +187,63 @@ export const sendUserInvite: CollectionAfterChangeHook = async ({ doc, operation
     throw new Error(`User invite email was not sent because ${doc.email} could not be found.`)
   }
 
+  await req.payload.sendEmail({
+    to: doc.email,
+    subject: inviteEmailSubject(),
+    html: inviteEmailHTML({ req, token, user: doc }),
+  })
+
   req.payload.logger.info({
     msg: 'User invite email sent',
     userID: doc.id,
   })
 
   return doc
+}
+
+export const sendOnboardingEmailAfterPasswordSetup: CollectionAfterOperationHook<'users'> = async ({
+  operation,
+  req,
+  result,
+}) => {
+  if (operation !== 'resetPassword') {
+    return result
+  }
+
+  const user = result?.user
+
+  const userID = user?.id
+
+  if (
+    (typeof userID !== 'number' && typeof userID !== 'string') ||
+    !user.email ||
+    user.onboardingEmailSentAt
+  ) {
+    return result
+  }
+
+  await req.payload.sendEmail({
+    to: user.email,
+    subject: 'Primeros pasos en Panfleto',
+    html: onboardingEmailHTML({ req, user }),
+  })
+
+  await req.payload.update({
+    id: userID,
+    collection: 'users',
+    data: {
+      onboardingEmailSentAt: new Date().toISOString(),
+    },
+    overrideAccess: true,
+    req,
+  })
+
+  req.payload.logger.info({
+    msg: 'User onboarding email sent',
+    userID,
+  })
+
+  return result
 }
 
 export const Users: CollectionConfig = {
@@ -118,8 +282,8 @@ export const Users: CollectionConfig = {
     forgotPassword: {
       expiration: 1000 * 60 * 60 * 24 * 7,
       generateEmailHTML: (args) =>
-        inviteEmailHTML({ req: args?.req, token: args?.token, user: args?.user }),
-      generateEmailSubject: inviteEmailSubject,
+        resetPasswordEmailHTML({ req: args?.req, token: args?.token, user: args?.user }),
+      generateEmailSubject: resetPasswordEmailSubject,
     },
   },
   fields: [
@@ -151,9 +315,17 @@ export const Users: CollectionConfig = {
       ],
       required: true,
     },
+    {
+      name: 'onboardingEmailSentAt',
+      type: 'date',
+      admin: {
+        hidden: true,
+      },
+    },
   ],
   hooks: {
     afterChange: [sendUserInvite],
+    afterOperation: [sendOnboardingEmailAfterPasswordSetup],
     beforeChange: [createFirstUserAsAdmin, preventLastAdminRoleRemoval],
     beforeDelete: [preventLastAdminDelete, preventAssignedTaskOrphans],
   },
