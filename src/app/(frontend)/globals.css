@@ -276,9 +276,11 @@
   background: color-mix(in srgb, var(--ep-paper) 94%, var(--background));
   border-bottom: 1px solid var(--ep-rule);
   backdrop-filter: blur(14px);
+  transform: translateZ(0);
   transition:
     border-color 180ms ease,
     box-shadow 180ms ease;
+  will-change: box-shadow;
 }
 
 .site-header__utility {
@@ -293,16 +295,15 @@
   line-height: 1.1;
   text-transform: uppercase;
   transition:
-    max-height 180ms ease,
-    opacity 180ms ease,
-    padding 180ms ease;
+    opacity 140ms ease,
+    visibility 140ms ease;
 }
 
 .site-header__masthead {
   display: flex;
   justify-content: center;
   padding-block: clamp(0.55rem, 1.5vw, 1rem);
-  transition: padding 180ms ease;
+  transition: padding 140ms ease;
 }
 
 .site-wordmark,
@@ -314,7 +315,7 @@
   line-height: 0.9;
   letter-spacing: 0;
   text-align: center;
-  transition: font-size 180ms ease;
+  transition: font-size 140ms ease;
 }
 
 .site-nav-wrap {
@@ -327,7 +328,6 @@
   justify-content: space-between;
   min-height: 2.35rem;
   gap: 0.75rem;
-  transition: min-height 180ms ease;
 }
 
 .site-nav__links {
@@ -366,9 +366,6 @@
   border: 0;
   background: transparent;
   color: var(--ep-ink);
-  transition:
-    min-height 180ms ease,
-    min-width 180ms ease;
 }
 
 .site-nav__menu {
@@ -390,6 +387,7 @@
   opacity: 0;
   padding-block: 0;
   border-bottom-color: transparent;
+  visibility: hidden;
 }
 
 .site-header.is-compact .site-header__masthead {

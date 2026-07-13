@@ -2,7 +2,7 @@
 import { useHeaderTheme } from '@/providers/HeaderTheme'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 
 import type { Header, Section } from '@/payload-types'
 import { siteName } from '@/utilities/editorial'
@@ -25,6 +25,8 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({
   /* Storing the value in a useState to avoid hydration errors */
   const [theme, setTheme] = useState<string | null>(null)
   const [compact, setCompact] = useState(false)
+  const compactRef = useRef(false)
+  const frameRef = useRef<number | null>(null)
   const { headerTheme, setHeaderTheme } = useHeaderTheme()
   const pathname = usePathname()
 
@@ -39,15 +41,38 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({
   }, [headerTheme])
 
   useEffect(() => {
+    const compactAt = 112
+    const expandAt = 56
+
     const updateCompact = () => {
-      setCompact(window.scrollY > 88)
+      const shouldCompact = compactRef.current
+        ? window.scrollY > expandAt
+        : window.scrollY > compactAt
+
+      if (shouldCompact !== compactRef.current) {
+        compactRef.current = shouldCompact
+        setCompact(shouldCompact)
+      }
+    }
+
+    const scheduleUpdate = () => {
+      if (frameRef.current !== null) return
+
+      frameRef.current = window.requestAnimationFrame(() => {
+        frameRef.current = null
+        updateCompact()
+      })
     }
 
     updateCompact()
-    window.addEventListener('scroll', updateCompact, { passive: true })
+    window.addEventListener('scroll', scheduleUpdate, { passive: true })
 
     return () => {
-      window.removeEventListener('scroll', updateCompact)
+      window.removeEventListener('scroll', scheduleUpdate)
+
+      if (frameRef.current !== null) {
+        window.cancelAnimationFrame(frameRef.current)
+      }
     }
   }, [])
 

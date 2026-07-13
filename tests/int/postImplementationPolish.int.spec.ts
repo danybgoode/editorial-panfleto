@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { Footer } from '@/Footer/config'
 import { Header } from '@/Header/config'
+import { sendUserInvite } from '@/collections/Users'
 import { preventAssignedTaskOrphans } from '@/collections/Users/hooks/protectRoles'
 import { getNextScheduledSyncLabel } from '@/collections/MinifluxMappings'
 import { getArticleAgeHours, getTrendingScore } from '@/lib/trending/ranking'
@@ -53,6 +54,67 @@ describe('post-implementation polish safeguards', () => {
     ).resolves.toBeUndefined()
   })
 
+  it('sends invite reset emails for every admin-created user role', async () => {
+    const forgotPassword = vi.fn().mockResolvedValue('reset-token')
+    const logger = {
+      info: vi.fn(),
+    }
+    const req = {
+      payload: {
+        forgotPassword,
+        logger,
+      },
+      user: {
+        role: 'admin',
+      },
+    }
+
+    for (const role of ['admin', 'editor', 'writer'] as const) {
+      await expect(
+        sendUserInvite({
+          doc: {
+            id: `${role}-user`,
+            email: `${role}@editorial.test`,
+            role,
+          },
+          operation: 'create',
+          req,
+        } as never),
+      ).resolves.toMatchObject({
+        role,
+      })
+    }
+
+    expect(forgotPassword).toHaveBeenCalledTimes(3)
+    expect(forgotPassword).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'users',
+        data: {
+          email: 'admin@editorial.test',
+        },
+        overrideAccess: true,
+      }),
+    )
+    expect(forgotPassword).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'users',
+        data: {
+          email: 'editor@editorial.test',
+        },
+        overrideAccess: true,
+      }),
+    )
+    expect(forgotPassword).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'users',
+        data: {
+          email: 'writer@editorial.test',
+        },
+        overrideAccess: true,
+      }),
+    )
+  })
+
   it('keeps header and footer globals manageable by admins', async () => {
     const args = {
       req: {
@@ -66,6 +128,28 @@ describe('post-implementation polish safeguards', () => {
     await expect(Promise.resolve(Header.access?.update?.(args))).resolves.toBe(true)
     await expect(Promise.resolve(Footer.access?.read?.(args))).resolves.toBe(true)
     await expect(Promise.resolve(Footer.access?.update?.(args))).resolves.toBe(true)
+  })
+
+  it('makes section-owned navigation explicit in header and footer globals', () => {
+    const headerNavItems = Header.fields.find(
+      (field) => 'name' in field && field.name === 'navItems',
+    )
+    const footerNavItems = Footer.fields.find(
+      (field) => 'name' in field && field.name === 'navItems',
+    )
+
+    expect(Header.fields.some((field) => 'name' in field && field.name === 'sectionNavNotice')).toBe(
+      true,
+    )
+    expect(Footer.fields.some((field) => 'name' in field && field.name === 'sectionNavNotice')).toBe(
+      true,
+    )
+    expect(headerNavItems && 'label' in headerNavItems ? headerNavItems.label : '').toBe(
+      'Supplemental nav items',
+    )
+    expect(footerNavItems && 'label' in footerNavItems ? footerNavItems.label : '').toBe(
+      'Supplemental nav items',
+    )
   })
 
   it('summarizes the next Miniflux sync from existing mapping state', () => {
