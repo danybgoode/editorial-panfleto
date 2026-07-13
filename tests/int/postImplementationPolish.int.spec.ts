@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { Footer } from '@/Footer/config'
 import { Header } from '@/Header/config'
+import { sendUserInvite } from '@/collections/Users'
 import { preventAssignedTaskOrphans } from '@/collections/Users/hooks/protectRoles'
 import { getNextScheduledSyncLabel } from '@/collections/MinifluxMappings'
 import { getArticleAgeHours, getTrendingScore } from '@/lib/trending/ranking'
@@ -51,6 +52,67 @@ describe('post-implementation polish safeguards', () => {
         },
       } as never),
     ).resolves.toBeUndefined()
+  })
+
+  it('sends invite reset emails for every admin-created user role', async () => {
+    const forgotPassword = vi.fn().mockResolvedValue('reset-token')
+    const logger = {
+      info: vi.fn(),
+    }
+    const req = {
+      payload: {
+        forgotPassword,
+        logger,
+      },
+      user: {
+        role: 'admin',
+      },
+    }
+
+    for (const role of ['admin', 'editor', 'writer'] as const) {
+      await expect(
+        sendUserInvite({
+          doc: {
+            id: `${role}-user`,
+            email: `${role}@editorial.test`,
+            role,
+          },
+          operation: 'create',
+          req,
+        } as never),
+      ).resolves.toMatchObject({
+        role,
+      })
+    }
+
+    expect(forgotPassword).toHaveBeenCalledTimes(3)
+    expect(forgotPassword).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'users',
+        data: {
+          email: 'admin@editorial.test',
+        },
+        overrideAccess: true,
+      }),
+    )
+    expect(forgotPassword).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'users',
+        data: {
+          email: 'editor@editorial.test',
+        },
+        overrideAccess: true,
+      }),
+    )
+    expect(forgotPassword).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'users',
+        data: {
+          email: 'writer@editorial.test',
+        },
+        overrideAccess: true,
+      }),
+    )
   })
 
   it('keeps header and footer globals manageable by admins', async () => {
