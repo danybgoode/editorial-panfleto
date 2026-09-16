@@ -42,6 +42,11 @@ describe('the sealed session cookie', () => {
     expect(openSession(sealed, `${SECRET}-other`, NOW)).toBeNull()
     expect(openSession(sealed, SECRET, NOW + 31 * 24 * 3600 * 1000)).toBeNull()
     expect(openSession('v1.garbage', SECRET, NOW)).toBeNull()
+
+    // A genuine tag cut short must not verify (GCM would otherwise accept it).
+    const [v, iv, body2, tag] = sealed.split('.')
+    const short = Buffer.from(tag, 'base64url').subarray(0, 4).toString('base64url')
+    expect(openSession([v, iv, body2, short].join('.'), SECRET, NOW)).toBeNull()
   })
 
   it('gives two readers two different identities', () => {
@@ -90,6 +95,13 @@ describe('identifying a reader by their token', () => {
       vi.fn(async () => new Response('Access Unauthorized', { status: 401 })),
     )
     expect(await identifyReader(reader.key)).toEqual({ kind: 'unauthorized' })
+
+    // A proxy's 403 (a Cloudflare challenge) is not the token's fault.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('challenge', { status: 403 })),
+    )
+    expect(await identifyReader(reader.key)).toEqual({ kind: 'unavailable' })
 
     vi.stubGlobal(
       'fetch',

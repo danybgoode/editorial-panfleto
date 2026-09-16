@@ -87,7 +87,8 @@ export const decodeEntities = (value: string) =>
         ? String.fromCodePoint(code)
         : match
     }
-    return NAMED_ENTITIES[name.toLowerCase()] ?? match
+    const named = name.toLowerCase()
+    return Object.hasOwn(NAMED_ENTITIES, named) ? NAMED_ENTITIES[named] : match
   })
 
 export const titleTokens = (title: string) => {
@@ -158,8 +159,12 @@ export const hackerNewsItemId = (commentsUrl: string) => {
 
 type Story = EditionStory & { leadFeedTitle: string }
 
-const ageHours = (publishedAt: string, now: number) =>
-  (now - new Date(publishedAt).getTime()) / 3_600_000
+// A future date (a publisher's clock ahead) counts as brand new rather than scoring above 1, and an unparseable
+// one as infinitely old, so neither can pin a story to the top of the page.
+const ageHours = (publishedAt: string, now: number) => {
+  const published = new Date(publishedAt).getTime()
+  return Number.isNaN(published) ? Infinity : Math.max(0, (now - published) / 3_600_000)
+}
 
 // Cross-source dedupe: entries from DIFFERENT feeds join on the same canonical URL, or on titles sharing at
 // least three tokens with Jaccard >= .5. Same-feed entries join only on URL. Candidate pairs come from an

@@ -1,12 +1,13 @@
 import { loadEdition, type EditionResult, type EditionSource } from './edition'
-import { fetchHackerNewsComments, fetchReaderEntriesPage } from './reader'
-import { resolvePersonalizedReader } from './resolver'
-import type { ReaderSession } from './session'
+import { fetchHackerNewsComments, fetchReaderEntriesPage, identifyReader } from './reader'
+import { getUsableSessionSecret, resolvePersonalizedReader } from './resolver'
+import { fingerprintKey, type ReaderSession } from './session'
 import { getEditionStore, type EditionStore } from './store'
 
 export const readerEditionSource = (token: string): EditionSource => ({
   fetchEntriesPage: (params) => fetchReaderEntriesPage(token, params),
   fetchHackerNewsComments,
+  identify: () => identifyReader(token),
 })
 
 // Everything the personalized page needs, behind the one resolver: with the flag off, or no valid session,
@@ -24,7 +25,11 @@ export const loadPersonalizedEdition = async (
 
   const result = await loadEdition({
     now,
-    reader,
+    // resolvePersonalizedReader only returns a reader when a usable secret exists.
+    reader: {
+      ...reader,
+      keyFingerprint: fingerprintKey(reader.key, getUsableSessionSecret() || ''),
+    },
     source: source ?? readerEditionSource(reader.key),
     store: store ?? getEditionStore(),
   })

@@ -1,7 +1,12 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 
-import { publisherOf, rankEdition, type SlimEntry } from '@/lib/personalized/ranking'
+import {
+  decodeEntities,
+  publisherOf,
+  rankEdition,
+  type SlimEntry,
+} from '@/lib/personalized/ranking'
 
 // Sprint 3.1 (fluxonline personalized-edition): v1 ranks as the spike ran it.
 
@@ -138,5 +143,24 @@ describe('the v1 score and quotas', () => {
       (s) => s.url,
     )
     expect(new Set(shown).size).toBe(shown.length)
+  })
+})
+
+describe('input the feeds can get wrong', () => {
+  it('does not let a future or unparseable date pin a story to the top', () => {
+    const future = entry({
+      publishedAt: new Date(NOW + 48 * 3_600_000).toISOString(),
+      title: 'Clock ahead story',
+    })
+    const broken = entry({ publishedAt: 'not a date', title: 'Broken date story' })
+    const recent = entry({ publishedAt: hoursAgo(0.5), title: 'Ordinary recent story' })
+
+    const front = rank([future, broken, recent]).front
+    expect(front[0].score).toBeLessThanOrEqual(1)
+    expect(front.map((s) => s.title).at(-1)).toBe('Broken date story')
+  })
+
+  it('decodes only real entity names', () => {
+    expect(decodeEntities('Q&amp;A &constructor; &#8217;')).toBe('Q&A &constructor; \u2019')
   })
 })

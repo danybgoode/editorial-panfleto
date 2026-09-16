@@ -1,14 +1,23 @@
 import { gunzipSync, gzipSync } from 'node:zlib'
 
 import { hackerNewsItemId, makeExcerpt, rankEdition, type Edition, type SlimEntry } from './ranking'
-import { ENTRIES_PAGE_LIMIT, isUnauthorizedError, type ReaderEntry } from './reader'
+import {
+  ENTRIES_PAGE_LIMIT,
+  isUnauthorizedError,
+  type ReaderEntry,
+  type ReaderIdentity,
+} from './reader'
 import type { ReaderSession } from './session'
 import type { EditionStore } from './store'
 
 // A reader's day, built once and reused (fluxonline personalized-edition D1b, D5, D6).
 //
 // - No stored edition: build the day inline. This is the only blocking fetch.
-// - Stored and younger than FRESH_MS: serve it with no call to panfleto at all.
+// - Before any of that, the key in the session must be one panfleto still accepts FOR THIS USER, checked
+//   against /v1/me at most every KEY_CHECK_TTL_SECONDS. So a revoked or rotated token stops reading within
+//   that window however fresh the edition is kept by someone else's views, and a session can only ever
+//   read the edition of the user its own key belongs to.
+// - Stored and younger than FRESH_MS: serve it with no call for entries.
 // - Stored and older: serve it now, and hand back a refresh for the caller to run after the response.
 //   The refresh asks only for entries STORED since the last build (`after_entry_id`), which also catches the
 //   late arrivals a `published_after` delta would miss. Past FULL_MAX_AGE_MS it rebuilds the whole day, so
@@ -23,6 +32,9 @@ const STORE_TTL_SECONDS = 48 * 60 * 60
 const LOCK_TTL_SECONDS = 120
 const MAX_PAGES = 5
 const HN_CONCURRENCY = 8
+// All HN lookups in one build share this budget; anything unfetched counts 0 until the next rebuild.
+const HN_BUDGET_MS = 4000
+export const KEY_CHECK_TTL_SECONDS = 10 * 60
 
 export type EditionSource = {
   fetchEntriesPage: (params: {
@@ -30,6 +42,7 @@ export type EditionSource = {
     publishedAfter: number
   }) => Promise<ReaderEntry[]>
   fetchHackerNewsComments: (itemId: string) => Promise<number>
+  identify: () => Promise<ReaderIdentity>
 }
 
 export type StoredEdition = {
@@ -50,6 +63,14 @@ export type EditionResult = {
   state: 'built' | 'fresh' | 'stale'
 }
 
+// panfleto could not be asked (outage, timeout, a proxy in front of it refusing Vercel). Not the token's fault.
+export class ReaderUnavailable extends Error {
+  constructor() {
+    super('panfleto is not answering')
+    this.name = 'ReaderUnavailable'
+  }
+}
+
 export class ReaderTokenRejected extends Error {
   constructor() {
     super('panfleto rejected the reader token')
@@ -63,6 +84,12 @@ export const editionKey = (userId: number, environment = process.env.VERCEL_ENV 
   `pe:v1:${environment}:edition:${userId}`
 
 const lockKey = (userId: number, environment?: string) => `${editionKey(userId, environment)}:lock`
+
+// Records "this key was accepted for this user" under an HMAC of the key, never the key itself.
+const keyCheckKey = (
+  keyFingerprint: string,
+  environment = process.env.VERCEL_ENV || 'development',
+) => `pe:v1:${environment}:key:${keyFingerprint}`
 
 const encode = (stored: StoredEdition) => gzipSync(JSON.stringify(stored)).toString('base64')
 
@@ -120,11 +147,18 @@ const fetchCommentCounts = async (source: EditionSource, entries: SlimEntry[]) =
     return itemId ? [{ entryId: String(entry.id), itemId }] : []
   })
   const counts: Record<string, number> = {}
+  const deadline = Date.now() + HN_BUDGET_MS
 
   for (let index = 0; index < wanted.length; index += HN_CONCURRENCY) {
+    const remaining = deadline - Date.now()
+    if (remaining <= 0) break
     await Promise.all(
       wanted.slice(index, index + HN_CONCURRENCY).map(async ({ entryId, itemId }) => {
-        counts[entryId] = await source.fetchHackerNewsComments(itemId)
+        const count = await Promise.race([
+          source.fetchHackerNewsComments(itemId),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), remaining)),
+        ])
+        if (typeof count === 'number') counts[entryId] = count
       }),
     )
   }
@@ -206,11 +240,19 @@ export const loadEdition = async ({
 }: {
   environment?: string
   now: number
-  reader: Pick<ReaderSession, 'userId'>
+  reader: Pick<ReaderSession, 'userId'> & { keyFingerprint: string }
   source: EditionSource
   store: EditionStore
 }): Promise<EditionResult> => {
   const key = editionKey(reader.userId, environment)
+  const checked = keyCheckKey(reader.keyFingerprint, environment)
+
+  if ((await store.get(checked).catch(() => null)) !== String(reader.userId)) {
+    const identity = await source.identify()
+    if (identity.kind === 'unavailable') throw new ReaderUnavailable()
+    if (identity.kind !== 'ok' || identity.userId !== reader.userId) throw new ReaderTokenRejected()
+    await store.set(checked, String(reader.userId), KEY_CHECK_TTL_SECONDS).catch(() => undefined)
+  }
   const stored = decode(await store.get(key).catch(() => null))
 
   if (!stored || stored.userId !== reader.userId) {
@@ -227,8 +269,10 @@ export const loadEdition = async ({
 
   const refresh = async () => {
     const lock = lockKey(reader.userId, environment)
-    if (!(await store.acquireLock(lock, LOCK_TTL_SECONDS))) return
+    let owner: null | string = null
     try {
+      owner = await store.acquireLock(lock, LOCK_TTL_SECONDS)
+      if (!owner) return
       const next =
         now - stored.fullBuiltAt >= FULL_MAX_AGE_MS
           ? await buildFullEdition(reader.userId, source, now)
@@ -245,7 +289,7 @@ export const loadEdition = async ({
         message: String(error),
       })
     } finally {
-      await store.del(lock).catch(() => undefined)
+      if (owner) await store.releaseLock(lock, owner).catch(() => undefined)
     }
   }
 

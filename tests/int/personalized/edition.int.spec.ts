@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from 'vitest'
 
 import {
   DAY_MS,
+  ReaderTokenRejected,
+  ReaderUnavailable,
   editionKey,
   FRESH_MS,
   FULL_MAX_AGE_MS,
@@ -10,7 +12,7 @@ import {
   type EditionSource,
 } from '@/lib/personalized/edition'
 import { MinifluxRequestError } from '@/lib/miniflux/client'
-import type { ReaderEntry } from '@/lib/personalized/reader'
+import type { ReaderEntry, ReaderIdentity } from '@/lib/personalized/reader'
 import { createMemoryStore } from '@/lib/personalized/store'
 
 // Sprint 2 (fluxonline personalized-edition): a reader's day is built once, refreshed by delta, and can never
@@ -34,14 +36,21 @@ const entry = (id: number, title: string, overrides: Partial<ReaderEntry> = {}):
   ...overrides,
 })
 
-const sourceOf = (entries: ReaderEntry[]) => {
+const sourceOf = (entries: ReaderEntry[], userId = 2) => {
   const fetchEntriesPage = vi.fn(
     async ({ afterEntryId }: { afterEntryId: number; publishedAfter: number }) =>
       entries.filter((item) => item.id > afterEntryId),
   )
   const fetchHackerNewsComments = vi.fn(async () => 0)
-  return { fetchEntriesPage, fetchHackerNewsComments } satisfies EditionSource
+  const identify = vi.fn(async (): Promise<ReaderIdentity> => ({
+    kind: 'ok',
+    userId,
+    username: `u${userId}`,
+  }))
+  return { fetchEntriesPage, fetchHackerNewsComments, identify } satisfies EditionSource
 }
+
+const readerOf = (userId: number) => ({ keyFingerprint: `fp-${userId}`, userId })
 
 const titles = (result: { edition: { front: Array<{ title: string }> } }) =>
   result.edition.front.map((s) => s.title)
@@ -51,7 +60,7 @@ describe("a reader's day is built once and reused (2.1)", () => {
     const store = createMemoryStore(() => NOW)
     const source = sourceOf([entry(1, 'Primera historia del día')])
 
-    const first = await loadEdition({ now: NOW, reader: { userId: 2 }, source, store })
+    const first = await loadEdition({ now: NOW, reader: readerOf(2), source, store })
     expect(first.state).toBe('built')
     expect(source.fetchEntriesPage).toHaveBeenCalledWith({
       afterEntryId: 0,
@@ -61,7 +70,7 @@ describe("a reader's day is built once and reused (2.1)", () => {
     source.fetchEntriesPage.mockClear()
     const second = await loadEdition({
       now: NOW + FRESH_MS - 1,
-      reader: { userId: 2 },
+      reader: readerOf(2),
       source,
       store,
     })
@@ -80,7 +89,7 @@ describe("a reader's day is built once and reused (2.1)", () => {
       day.filter((item) => item.id > afterEntryId).slice(0, 1000),
     )
 
-    const result = await loadEdition({ now: NOW, reader: { userId: 2 }, source, store })
+    const result = await loadEdition({ now: NOW, reader: readerOf(2), source, store })
     expect(result.edition.entryCount).toBe(1500)
     expect(source.fetchEntriesPage.mock.calls.map(([params]) => params.afterEntryId)).toEqual([
       0, 1000,
@@ -92,7 +101,7 @@ describe('the edition refreshes incrementally (2.2)', () => {
   it('serves the stale copy at once, then fetches only entries stored since the last build', async () => {
     const store = createMemoryStore(() => NOW)
     const source = sourceOf([entry(10, 'Historia vieja pero vigente')])
-    await loadEdition({ now: NOW, reader: { userId: 2 }, source, store })
+    await loadEdition({ now: NOW, reader: readerOf(2), source, store })
 
     // A late arrival: stored after the last build (higher ID) but published five hours earlier.
     const later = NOW + FRESH_MS + 1
@@ -101,7 +110,7 @@ describe('the edition refreshes incrementally (2.2)', () => {
       entry(11, 'Llegó tarde al lector', { published_at: hoursAgo(5, later) }),
     ])
 
-    const stale = await loadEdition({ now: later, reader: { userId: 2 }, source, store })
+    const stale = await loadEdition({ now: later, reader: readerOf(2), source, store })
     expect(stale.state).toBe('stale')
     expect(titles(stale)).toEqual(['Historia vieja pero vigente'])
     expect(source.fetchEntriesPage).not.toHaveBeenCalled()
@@ -113,7 +122,7 @@ describe('the edition refreshes incrementally (2.2)', () => {
       publishedAfter: Math.floor((later - DAY_MS) / 1000),
     })
 
-    const refreshed = await loadEdition({ now: later + 1, reader: { userId: 2 }, source, store })
+    const refreshed = await loadEdition({ now: later + 1, reader: readerOf(2), source, store })
     expect(refreshed.state).toBe('fresh')
     expect(refreshed.edition.entryCount).toBe(2)
     expect(titles(refreshed)).toContain('Llegó tarde al lector')
@@ -122,12 +131,12 @@ describe('the edition refreshes incrementally (2.2)', () => {
   it('rebuilds the whole day once the edition is older than the max age', async () => {
     const store = createMemoryStore(() => NOW)
     const source = sourceOf([entry(10, 'Historia de la mañana')])
-    await loadEdition({ now: NOW, reader: { userId: 2 }, source, store })
+    await loadEdition({ now: NOW, reader: readerOf(2), source, store })
 
     source.fetchEntriesPage.mockClear()
     const stale = await loadEdition({
       now: NOW + FULL_MAX_AGE_MS,
-      reader: { userId: 2 },
+      reader: readerOf(2),
       source,
       store,
     })
@@ -138,10 +147,10 @@ describe('the edition refreshes incrementally (2.2)', () => {
   it('drops the edition when panfleto rejects the token during a refresh', async () => {
     const store = createMemoryStore(() => NOW)
     const source = sourceOf([entry(10, 'Historia')])
-    await loadEdition({ now: NOW, reader: { userId: 2 }, source, store })
+    await loadEdition({ now: NOW, reader: readerOf(2), source, store })
 
     source.fetchEntriesPage.mockRejectedValue(new MinifluxRequestError(401, 'Access Unauthorized'))
-    const stale = await loadEdition({ now: NOW + FRESH_MS, reader: { userId: 2 }, source, store })
+    const stale = await loadEdition({ now: NOW + FRESH_MS, reader: readerOf(2), source, store })
     await stale.refresh?.()
     expect(await store.get(editionKey(2))).toBeNull()
   })
@@ -154,10 +163,10 @@ describe("one reader's edition is never served to another (2.3)", () => {
 
     const store = createMemoryStore(() => NOW)
     const readerA = sourceOf([entry(1, 'Solo para la lectora A')])
-    const readerB = sourceOf([entry(2, 'Solo para el lector B')])
+    const readerB = sourceOf([entry(2, 'Solo para el lector B')], 3)
 
-    await loadEdition({ now: NOW, reader: { userId: 2 }, source: readerA, store })
-    const b = await loadEdition({ now: NOW + 1, reader: { userId: 3 }, source: readerB, store })
+    await loadEdition({ now: NOW, reader: readerOf(2), source: readerA, store })
+    const b = await loadEdition({ now: NOW + 1, reader: readerOf(3), source: readerB, store })
 
     expect(b.state).toBe('built')
     expect(titles(b)).toEqual(['Solo para el lector B'])
@@ -168,7 +177,7 @@ describe("one reader's edition is never served to another (2.3)", () => {
     const store = createMemoryStore(() => NOW)
     await loadEdition({
       now: NOW,
-      reader: { userId: 2 },
+      reader: readerOf(2),
       source: sourceOf([entry(1, 'De A')]),
       store,
     })
@@ -176,11 +185,71 @@ describe("one reader's edition is never served to another (2.3)", () => {
 
     const b = await loadEdition({
       now: NOW + 1,
-      reader: { userId: 3 },
-      source: sourceOf([entry(2, 'De B')]),
+      reader: readerOf(3),
+      source: sourceOf([entry(2, 'De B')], 3),
       store,
     })
     expect(b.state).toBe('built')
     expect(titles(b)).toEqual(['De B'])
+  })
+})
+
+describe('a revoked or foreign key stops reading, however fresh the edition is (review finding 2)', () => {
+  it('refuses a key panfleto no longer accepts, even inside the fresh window', async () => {
+    const store = createMemoryStore(() => NOW)
+    const source = sourceOf([entry(1, 'Historia')])
+    await loadEdition({ now: NOW, reader: readerOf(2), source, store })
+
+    // Same user, another cookie holding a key that was since revoked.
+    source.identify.mockResolvedValue({ kind: 'unauthorized' })
+    await expect(
+      loadEdition({ now: NOW + 1, reader: { keyFingerprint: 'fp-old', userId: 2 }, source, store }),
+    ).rejects.toBeInstanceOf(ReaderTokenRejected)
+  })
+
+  it('refuses a key that belongs to a different user than the cookie says', async () => {
+    const store = createMemoryStore(() => NOW)
+    await loadEdition({
+      now: NOW,
+      reader: readerOf(2),
+      source: sourceOf([entry(1, 'De A')]),
+      store,
+    })
+
+    const forged = sourceOf([entry(2, 'De B')], 3)
+    await expect(
+      loadEdition({
+        now: NOW + 1,
+        reader: { keyFingerprint: 'fp-3', userId: 2 },
+        source: forged,
+        store,
+      }),
+    ).rejects.toBeInstanceOf(ReaderTokenRejected)
+    expect(forged.fetchEntriesPage).not.toHaveBeenCalled()
+  })
+
+  it('checks a key at most once per window, and reports an outage as an outage', async () => {
+    const store = createMemoryStore(() => NOW)
+    const source = sourceOf([entry(1, 'Historia')])
+    await loadEdition({ now: NOW, reader: readerOf(2), source, store })
+    await loadEdition({ now: NOW + 1, reader: readerOf(2), source, store })
+    expect(source.identify).toHaveBeenCalledTimes(1)
+
+    source.identify.mockResolvedValue({ kind: 'unavailable' })
+    await expect(
+      loadEdition({ now: NOW + 2, reader: readerOf(9), source, store }),
+    ).rejects.toBeInstanceOf(ReaderUnavailable)
+  })
+
+  it('keeps serving the stored copy when the lock store itself fails', async () => {
+    const store = createMemoryStore(() => NOW)
+    const source = sourceOf([entry(1, 'Historia')])
+    await loadEdition({ now: NOW, reader: readerOf(2), source, store })
+    store.acquireLock = async () => {
+      throw new Error('Upstash unreachable')
+    }
+
+    const stale = await loadEdition({ now: NOW + FRESH_MS, reader: readerOf(2), source, store })
+    await expect(stale.refresh?.()).resolves.toBeUndefined()
   })
 })

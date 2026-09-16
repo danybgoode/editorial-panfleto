@@ -70,8 +70,13 @@ const minifluxFetch = async <T>(path: string): Promise<T> =>
 
 // The per-call form: the anonymous importer passes the newsroom's env key through minifluxFetch above,
 // and the personalized edition passes a reader's own key. The token is never part of an error message.
-export const minifluxFetchAs = async <T>(token: string, path: string): Promise<T> => {
+export const minifluxFetchAs = async <T>(
+  token: string,
+  path: string,
+  { timeoutMs }: { timeoutMs?: number } = {},
+): Promise<T> => {
   const response = await fetch(`${getMinifluxBaseURL()}${path}`, {
+    signal: timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined,
     headers: {
       'Content-Type': 'application/json',
       'X-Auth-Token': token,

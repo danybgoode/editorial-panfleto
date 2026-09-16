@@ -10,14 +10,22 @@ export type ReaderIdentity =
   | { kind: 'unauthorized' }
   | { kind: 'unavailable' }
 
+// Only a 401 means "this token". Miniflux answers a bad key with 401 and nothing else; a 403 on this path comes
+// from the proxy in front of it (a Cloudflare challenge on Vercel's egress), and telling readers to replace a
+// working token during that would sign every one of them out.
 export const isUnauthorizedError = (error: unknown) =>
-  error instanceof MinifluxRequestError && (error.status === 401 || error.status === 403)
+  error instanceof MinifluxRequestError && error.status === 401
+
+const IDENTIFY_TIMEOUT_MS = 8000
+const ENTRIES_TIMEOUT_MS = 20000
 
 export const identifyReader = async (token: string): Promise<ReaderIdentity> => {
   if (!isPlausibleToken(token)) return { kind: 'malformed' }
 
   try {
-    const me = await minifluxFetchAs<{ id?: unknown; username?: unknown }>(token, '/me')
+    const me = await minifluxFetchAs<{ id?: unknown; username?: unknown }>(token, '/me', {
+      timeoutMs: IDENTIFY_TIMEOUT_MS,
+    })
 
     if (typeof me.id !== 'number' || typeof me.username !== 'string') return { kind: 'unavailable' }
 
@@ -73,6 +81,7 @@ export const fetchReaderEntriesPage = async (
   const data = await minifluxFetchAs<{ entries?: ReaderEntry[] }>(
     token,
     `/entries?${params.toString()}`,
+    { timeoutMs: ENTRIES_TIMEOUT_MS },
   )
   return data.entries || []
 }

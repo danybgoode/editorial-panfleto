@@ -10,6 +10,7 @@ const safeHref = (url: string) => (/^https?:\/\//i.test(url) ? url : undefined)
 
 export const formatAge = (publishedAt: string, now: number) => {
   const minutes = Math.max(0, Math.round((now - new Date(publishedAt).getTime()) / 60_000))
+  if (Number.isNaN(minutes)) return ''
   if (minutes < 60) return `hace ${minutes} min`
   return `hace ${Math.round(minutes / 60)} h`
 }

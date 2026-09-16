@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { loadPersonalizedEdition } from '@/lib/personalized/load'
 import { sealSession, SESSION_COOKIE } from '@/lib/personalized/session'
 import { createMemoryStore } from '@/lib/personalized/store'
+import { GET as signOutGET } from '@/app/(frontend)/tu-edicion/salir/route'
 import { proxy } from '@/proxy'
 
 // Sprint 3.3 (fluxonline personalized-edition): `editorial.personalized_enabled`, enablement polarity. Off,
@@ -27,6 +28,7 @@ const spies = () => {
   const source = {
     fetchEntriesPage: vi.fn(async () => []),
     fetchHackerNewsComments: vi.fn(async () => 0),
+    identify: vi.fn(async () => ({ kind: 'ok' as const, userId: 2, username: 'lectora' })),
   }
   return { source, store, storeSpies }
 }
@@ -87,5 +89,23 @@ describe('with the flag on', () => {
     })
 
     expect(proxy(request).headers.get('x-middleware-rewrite')).toBeNull()
+  })
+})
+
+describe('the expired-token sign-out route', () => {
+  it('signs out on our own redirect, and ignores a cross-site request', () => {
+    const own = signOutGET(
+      new NextRequest('https://editorial-panfleto.vercel.app/tu-edicion/salir', {
+        headers: { 'sec-fetch-site': 'same-origin' },
+      }),
+    )
+    expect(own.headers.get('set-cookie')).toContain(`${SESSION_COOKIE}=;`)
+
+    const foreign = signOutGET(
+      new NextRequest('https://editorial-panfleto.vercel.app/tu-edicion/salir', {
+        headers: { 'sec-fetch-site': 'cross-site' },
+      }),
+    )
+    expect(foreign.headers.get('set-cookie')).toBeNull()
   })
 })

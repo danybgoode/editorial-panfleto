@@ -6,7 +6,8 @@ import React from 'react'
 
 import { SectionHeading } from '@/components/Editorial/SectionHeading'
 import { formatAge, StoryCard } from '@/components/Editorial/StoryCard'
-import { ReaderTokenRejected } from '@/lib/personalized/edition'
+import { MinifluxRequestError } from '@/lib/miniflux/client'
+import { ReaderTokenRejected, ReaderUnavailable } from '@/lib/personalized/edition'
 import { loadPersonalizedEdition } from '@/lib/personalized/load'
 import { resolvePersonalizedReader } from '@/lib/personalized/resolver'
 import { SESSION_COOKIE } from '@/lib/personalized/session'
@@ -25,12 +26,22 @@ async function loadPage(cookieValue: string | undefined) {
   try {
     const loaded = await loadPersonalizedEdition(cookieValue, { now })
     if (loaded?.refresh) after(loaded.refresh)
-    return { loaded, now, tokenRejected: false }
+    return { failure: null, loaded, now }
   } catch (error) {
-    if (!(error instanceof ReaderTokenRejected)) {
-      console.error('[tu-edicion] could not build an edition', { message: String(error) })
+    if (error instanceof ReaderTokenRejected)
+      return { failure: 'rejected' as const, loaded: null, now }
+
+    // Only a failure to reach panfleto is described as panfleto being down; our own bug is not.
+    const unreachable =
+      error instanceof ReaderUnavailable ||
+      error instanceof MinifluxRequestError ||
+      (error instanceof Error && ['AbortError', 'TimeoutError', 'TypeError'].includes(error.name))
+    console.error('[tu-edicion] could not build an edition', { message: String(error) })
+    return {
+      failure: unreachable ? ('unavailable' as const) : ('broken' as const),
+      loaded: null,
+      now,
     }
-    return { loaded: null, now, tokenRejected: error instanceof ReaderTokenRejected }
   }
 }
 
@@ -39,8 +50,8 @@ export default async function PersonalizedEditionPage() {
   const reader = resolvePersonalizedReader(cookieValue)
   if (!reader) redirect('/')
 
-  const { loaded, now, tokenRejected } = await loadPage(cookieValue)
-  if (tokenRejected) redirect('/tu-edicion/salir')
+  const { failure, loaded, now } = await loadPage(cookieValue)
+  if (failure === 'rejected') redirect('/tu-edicion/salir')
 
   const edition = loaded?.edition
   const builtAt = loaded?.builtAt ?? now
@@ -73,8 +84,9 @@ export default async function PersonalizedEditionPage() {
       {!edition ? (
         <section className="empty-state ep-container">
           <p>
-            panfleto no está respondiendo ahora mismo, así que no pudimos armar tu edición. Tu
-            conexión está bien: no cambies tu token. Vuelve a intentarlo en unos minutos.
+            {failure === 'unavailable'
+              ? 'panfleto no está respondiendo ahora mismo, así que no pudimos armar tu edición. Tu conexión está bien: no cambies tu token. Vuelve a intentarlo en unos minutos.'
+              : 'Algo falló de nuestro lado al armar tu edición. Tu token está bien: no lo cambies. Vuelve a intentarlo en unos minutos.'}
           </p>
         </section>
       ) : !lead ? (

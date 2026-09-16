@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto'
+import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes } from 'node:crypto'
 
 // The reader's session for the personalized edition (fluxonline epic personalized-edition, D4).
 //
@@ -24,11 +24,21 @@ export type ReaderSession = {
 
 const VERSION = 'v1'
 
+const IV_BYTES = 12
+const TAG_BYTES = 16
+
+// Names a key without storing it: the edition cache remembers "panfleto accepted this key" under this.
+export const fingerprintKey = (key: string, secret: string) =>
+  createHmac('sha256', `panfleto-edicion-key:${secret}`)
+    .update(key)
+    .digest('base64url')
+    .slice(0, 32)
+
 const deriveKey = (secret: string) =>
   createHash('sha256').update(`panfleto-edicion:${secret}`).digest()
 
 export const sealSession = (session: ReaderSession, secret: string) => {
-  const iv = randomBytes(12)
+  const iv = randomBytes(IV_BYTES)
   const cipher = createCipheriv('aes-256-gcm', deriveKey(secret), iv)
   const body = Buffer.concat([
     cipher.update(
@@ -58,13 +68,16 @@ export const openSession = (
   const [version, iv, body, tag, extra] = value.split('.')
   if (version !== VERSION || !iv || !body || !tag || extra !== undefined) return null
 
+  const ivBytes = Buffer.from(iv, 'base64url')
+  const tagBytes = Buffer.from(tag, 'base64url')
+  // GCM would otherwise accept a truncated tag, which turns forging a cookie into a short online guess.
+  if (ivBytes.length !== IV_BYTES || tagBytes.length !== TAG_BYTES) return null
+
   try {
-    const decipher = createDecipheriv(
-      'aes-256-gcm',
-      deriveKey(secret),
-      Buffer.from(iv, 'base64url'),
-    )
-    decipher.setAuthTag(Buffer.from(tag, 'base64url'))
+    const decipher = createDecipheriv('aes-256-gcm', deriveKey(secret), ivBytes, {
+      authTagLength: TAG_BYTES,
+    })
+    decipher.setAuthTag(tagBytes)
     const plain = Buffer.concat([decipher.update(Buffer.from(body, 'base64url')), decipher.final()])
     const data = JSON.parse(plain.toString('utf8')) as {
       i: unknown
