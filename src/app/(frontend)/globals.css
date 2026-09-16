@@ -355,6 +355,20 @@
   margin-left: auto;
 }
 
+.site-nav__edition {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.2rem;
+  margin-right: 0.35rem;
+  padding-inline: 0.55rem;
+  border: 1px solid var(--ep-ink);
+  white-space: nowrap;
+}
+
+.site-header.is-compact .site-nav__edition {
+  min-height: 2rem;
+}
+
 .site-nav__search,
 .site-nav__menu,
 .theme-toggle {
