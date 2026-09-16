@@ -42,23 +42,35 @@ type FetchEntriesArgs = {
 
 const DEFAULT_MINIFLUX_URL = 'https://app.panfleto.win'
 
-const getMinifluxConfig = () => {
+export class MinifluxRequestError extends Error {
+  status: number
+
+  constructor(status: number, details: string) {
+    super(`Miniflux request failed (${status}): ${details}`)
+    this.name = 'MinifluxRequestError'
+    this.status = status
+  }
+}
+
+const getMinifluxBaseURL = () =>
+  `${(process.env.MINIFLUX_URL || DEFAULT_MINIFLUX_URL).replace(/\/$/, '')}/v1`
+
+const getMinifluxToken = () => {
   const token = process.env.MINIFLUX_API_KEY || process.env.MINIFLUX_API_TOKEN
-  const baseURL = (process.env.MINIFLUX_URL || DEFAULT_MINIFLUX_URL).replace(/\/$/, '')
 
   if (!token) {
     throw new Error('MINIFLUX_API_KEY is not configured.')
   }
 
-  return {
-    baseURL: `${baseURL}/v1`,
-    token,
-  }
+  return token
 }
 
-const minifluxFetch = async <T>(path: string): Promise<T> => {
-  const { baseURL, token } = getMinifluxConfig()
-  const response = await fetch(`${baseURL}${path}`, {
+const minifluxFetch = async <T>(path: string): Promise<T> => minifluxFetchAs<T>(getMinifluxToken(), path)
+
+// The per-call form: the anonymous importer passes the newsroom's env key through minifluxFetch above,
+// and the personalized edition passes a reader's own key. The token is never part of an error message.
+export const minifluxFetchAs = async <T>(token: string, path: string): Promise<T> => {
+  const response = await fetch(`${getMinifluxBaseURL()}${path}`, {
     headers: {
       'Content-Type': 'application/json',
       'X-Auth-Token': token,
@@ -68,7 +80,7 @@ const minifluxFetch = async <T>(path: string): Promise<T> => {
 
   if (!response.ok) {
     const details = await response.text().catch(() => '')
-    throw new Error(`Miniflux request failed (${response.status}): ${details || response.statusText}`)
+    throw new MinifluxRequestError(response.status, details || response.statusText)
   }
 
   return response.json() as Promise<T>
