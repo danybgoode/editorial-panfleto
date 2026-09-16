@@ -1,5 +1,6 @@
 import { HeaderClient } from './Component.client'
 import configPromise from '@payload-config'
+import { isPersonalizedEditionEnabled } from '@/lib/personalized/resolver'
 import { getCachedGlobal } from '@/utilities/getGlobals'
 import { getPayload } from 'payload'
 import React from 'react'
@@ -35,6 +36,7 @@ export async function Header() {
       dateLabel={dateLabel}
       dateTime={now.toISOString()}
       sections={sections.docs}
+      showEditionLink={isPersonalizedEditionEnabled()}
     />
   )
 }
