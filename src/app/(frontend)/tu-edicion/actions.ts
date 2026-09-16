@@ -3,9 +3,15 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 
+import { forgetEdition } from '@/lib/personalized/edition'
 import { identifyReader } from '@/lib/personalized/reader'
-import { getUsableSessionSecret, isPersonalizedEditionEnabled } from '@/lib/personalized/resolver'
+import {
+  getUsableSessionSecret,
+  isPersonalizedEditionEnabled,
+  resolvePersonalizedReader,
+} from '@/lib/personalized/resolver'
 import { SESSION_COOKIE, SESSION_MAX_AGE_SECONDS, sealSession } from '@/lib/personalized/session'
+import { getEditionStore } from '@/lib/personalized/store'
 
 export async function connectReader(formData: FormData) {
   if (!isPersonalizedEditionEnabled()) redirect('/')
@@ -44,7 +50,13 @@ export async function connectReader(formData: FormData) {
 
 export async function disconnectReader() {
   const cookieStore = await cookies()
+  const reader = resolvePersonalizedReader(cookieStore.get(SESSION_COOKIE)?.value)
   cookieStore.delete(SESSION_COOKIE)
+
+  // The edition is derived and disposable; a reader who leaves shouldn't leave a copy of their day behind.
+  if (reader) {
+    await forgetEdition(getEditionStore(), reader.userId).catch(() => undefined)
+  }
 
   redirect('/')
 }
