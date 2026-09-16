@@ -70,7 +70,10 @@ export const fetchReaderEntriesPage = async (
   params.append('status', 'read')
   if (afterEntryId > 0) params.set('after_entry_id', String(afterEntryId))
 
-  const data = await minifluxFetchAs<{ entries?: ReaderEntry[] }>(token, `/entries?${params.toString()}`)
+  const data = await minifluxFetchAs<{ entries?: ReaderEntry[] }>(
+    token,
+    `/entries?${params.toString()}`,
+  )
   return data.entries || []
 }
 

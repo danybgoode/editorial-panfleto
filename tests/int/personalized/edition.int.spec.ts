@@ -21,7 +21,11 @@ const hoursAgo = (hours: number, from = NOW) => new Date(from - hours * 3_600_00
 
 const entry = (id: number, title: string, overrides: Partial<ReaderEntry> = {}): ReaderEntry => ({
   content: `<p>${title}</p>`,
-  feed: { category: { title: 'News' }, site_url: `https://feed${id}.example.com`, title: `Feed ${id}` },
+  feed: {
+    category: { title: 'News' },
+    site_url: `https://feed${id}.example.com`,
+    title: `Feed ${id}`,
+  },
   feed_id: id,
   id,
   published_at: hoursAgo(1),
@@ -31,14 +35,16 @@ const entry = (id: number, title: string, overrides: Partial<ReaderEntry> = {}):
 })
 
 const sourceOf = (entries: ReaderEntry[]) => {
-  const fetchEntriesPage = vi.fn(async ({ afterEntryId }: { afterEntryId: number; publishedAfter: number }) =>
-    entries.filter((item) => item.id > afterEntryId),
+  const fetchEntriesPage = vi.fn(
+    async ({ afterEntryId }: { afterEntryId: number; publishedAfter: number }) =>
+      entries.filter((item) => item.id > afterEntryId),
   )
   const fetchHackerNewsComments = vi.fn(async () => 0)
   return { fetchEntriesPage, fetchHackerNewsComments } satisfies EditionSource
 }
 
-const titles = (result: { edition: { front: Array<{ title: string }> } }) => result.edition.front.map((s) => s.title)
+const titles = (result: { edition: { front: Array<{ title: string }> } }) =>
+  result.edition.front.map((s) => s.title)
 
 describe("a reader's day is built once and reused (2.1)", () => {
   it('builds on the first view, then serves a fresh edition with no call to panfleto', async () => {
@@ -53,7 +59,12 @@ describe("a reader's day is built once and reused (2.1)", () => {
     })
 
     source.fetchEntriesPage.mockClear()
-    const second = await loadEdition({ now: NOW + FRESH_MS - 1, reader: { userId: 2 }, source, store })
+    const second = await loadEdition({
+      now: NOW + FRESH_MS - 1,
+      reader: { userId: 2 },
+      source,
+      store,
+    })
     expect(second.state).toBe('fresh')
     expect(titles(second)).toEqual(['Primera historia del día'])
     expect(source.fetchEntriesPage).not.toHaveBeenCalled()
@@ -61,7 +72,9 @@ describe("a reader's day is built once and reused (2.1)", () => {
 
   it('pages through a day bigger than one request allows', async () => {
     const store = createMemoryStore(() => NOW)
-    const day = Array.from({ length: 1500 }, (_, index) => entry(index + 1, `Historia número ${index + 1}`))
+    const day = Array.from({ length: 1500 }, (_, index) =>
+      entry(index + 1, `Historia número ${index + 1}`),
+    )
     const source = sourceOf(day)
     source.fetchEntriesPage.mockImplementation(async ({ afterEntryId }) =>
       day.filter((item) => item.id > afterEntryId).slice(0, 1000),
@@ -69,7 +82,9 @@ describe("a reader's day is built once and reused (2.1)", () => {
 
     const result = await loadEdition({ now: NOW, reader: { userId: 2 }, source, store })
     expect(result.edition.entryCount).toBe(1500)
-    expect(source.fetchEntriesPage.mock.calls.map(([params]) => params.afterEntryId)).toEqual([0, 1000])
+    expect(source.fetchEntriesPage.mock.calls.map(([params]) => params.afterEntryId)).toEqual([
+      0, 1000,
+    ])
   })
 })
 
@@ -82,7 +97,9 @@ describe('the edition refreshes incrementally (2.2)', () => {
     // A late arrival: stored after the last build (higher ID) but published five hours earlier.
     const later = NOW + FRESH_MS + 1
     source.fetchEntriesPage.mockReset()
-    source.fetchEntriesPage.mockResolvedValue([entry(11, 'Llegó tarde al lector', { published_at: hoursAgo(5, later) })])
+    source.fetchEntriesPage.mockResolvedValue([
+      entry(11, 'Llegó tarde al lector', { published_at: hoursAgo(5, later) }),
+    ])
 
     const stale = await loadEdition({ now: later, reader: { userId: 2 }, source, store })
     expect(stale.state).toBe('stale')
@@ -108,7 +125,12 @@ describe('the edition refreshes incrementally (2.2)', () => {
     await loadEdition({ now: NOW, reader: { userId: 2 }, source, store })
 
     source.fetchEntriesPage.mockClear()
-    const stale = await loadEdition({ now: NOW + FULL_MAX_AGE_MS, reader: { userId: 2 }, source, store })
+    const stale = await loadEdition({
+      now: NOW + FULL_MAX_AGE_MS,
+      reader: { userId: 2 },
+      source,
+      store,
+    })
     await stale.refresh?.()
     expect(source.fetchEntriesPage.mock.calls[0][0].afterEntryId).toBe(0)
   })
@@ -142,12 +164,22 @@ describe("one reader's edition is never served to another (2.3)", () => {
     expect(readerA.fetchEntriesPage).toHaveBeenCalledTimes(1)
   })
 
-  it("rebuilds rather than trusting a stored edition that belongs to someone else", async () => {
+  it('rebuilds rather than trusting a stored edition that belongs to someone else', async () => {
     const store = createMemoryStore(() => NOW)
-    await loadEdition({ now: NOW, reader: { userId: 2 }, source: sourceOf([entry(1, 'De A')]), store })
+    await loadEdition({
+      now: NOW,
+      reader: { userId: 2 },
+      source: sourceOf([entry(1, 'De A')]),
+      store,
+    })
     await store.set(editionKey(3), (await store.get(editionKey(2))) as string, 60)
 
-    const b = await loadEdition({ now: NOW + 1, reader: { userId: 3 }, source: sourceOf([entry(2, 'De B')]), store })
+    const b = await loadEdition({
+      now: NOW + 1,
+      reader: { userId: 3 },
+      source: sourceOf([entry(2, 'De B')]),
+      store,
+    })
     expect(b.state).toBe('built')
     expect(titles(b)).toEqual(['De B'])
   })

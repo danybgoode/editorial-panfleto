@@ -65,7 +65,8 @@ const getMinifluxToken = () => {
   return token
 }
 
-const minifluxFetch = async <T>(path: string): Promise<T> => minifluxFetchAs<T>(getMinifluxToken(), path)
+const minifluxFetch = async <T>(path: string): Promise<T> =>
+  minifluxFetchAs<T>(getMinifluxToken(), path)
 
 // The per-call form: the anonymous importer passes the newsroom's env key through minifluxFetch above,
 // and the personalized edition passes a reader's own key. The token is never part of an error message.

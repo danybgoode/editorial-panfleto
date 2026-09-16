@@ -7,7 +7,10 @@ import React from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { isPersonalizedEditionEnabled, resolvePersonalizedReader } from '@/lib/personalized/resolver'
+import {
+  isPersonalizedEditionEnabled,
+  resolvePersonalizedReader,
+} from '@/lib/personalized/resolver'
 import { SESSION_COOKIE } from '@/lib/personalized/session'
 
 import { connectReader } from '../actions'
@@ -42,8 +45,8 @@ export default async function ConnectPage({
         <p>Tu edición</p>
         <h1>Tus fuentes, como un periódico.</h1>
         <p>
-          Conecta tu cuenta de panfleto y esta portada se arma con los medios que tú sigues: arriba lo
-          que publicaron varios de ellos, no lo último que llegó.
+          Conecta tu cuenta de panfleto y esta portada se arma con los medios que tú sigues: arriba
+          lo que publicaron varios de ellos, no lo último que llegó.
         </p>
       </section>
 
@@ -87,8 +90,8 @@ export default async function ConnectPage({
           </form>
 
           <p className="text-sm">
-            El token se guarda cifrado en una cookie de este sitio y solo se usa, desde el servidor, para
-            leer tus fuentes. Si lo cambias en panfleto, esta conexión se cierra sola.
+            El token se guarda cifrado en una cookie de este sitio y solo se usa, desde el servidor,
+            para leer tus fuentes. Si lo cambias en panfleto, esta conexión se cierra sola.
           </p>
         </section>
       )}

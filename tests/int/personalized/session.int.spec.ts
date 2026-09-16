@@ -45,7 +45,12 @@ describe('the sealed session cookie', () => {
   })
 
   it('gives two readers two different identities', () => {
-    const other = { ...reader, key: 'ANOTHERTOKENFORTHISTESTONLY00000', userId: 3, username: 'otro' }
+    const other = {
+      ...reader,
+      key: 'ANOTHERTOKENFORTHISTESTONLY00000',
+      userId: 3,
+      username: 'otro',
+    }
 
     expect(openSession(sealSession(reader, SECRET), SECRET, NOW)?.userId).toBe(2)
     expect(openSession(sealSession(other, SECRET), SECRET, NOW)?.userId).toBe(3)
@@ -80,13 +85,22 @@ describe('identifying a reader by their token', () => {
   })
 
   it('tells a rejected token apart from panfleto being down', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => new Response('Access Unauthorized', { status: 401 })))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('Access Unauthorized', { status: 401 })),
+    )
     expect(await identifyReader(reader.key)).toEqual({ kind: 'unauthorized' })
 
-    vi.stubGlobal('fetch', vi.fn(async () => new Response('bad gateway', { status: 502 })))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('bad gateway', { status: 502 })),
+    )
     expect(await identifyReader(reader.key)).toEqual({ kind: 'unavailable' })
 
-    vi.stubGlobal('fetch', vi.fn(async () => Promise.reject(new TypeError('fetch failed'))))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Promise.reject(new TypeError('fetch failed'))),
+    )
     expect(await identifyReader(reader.key)).toEqual({ kind: 'unavailable' })
   })
 

@@ -79,21 +79,34 @@ const NAMED_ENTITIES: Record<string, string> = {
 export const decodeEntities = (value: string) =>
   value.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (match, name: string) => {
     if (name[0] === '#') {
-      const code = name[1] === 'x' || name[1] === 'X' ? parseInt(name.slice(2), 16) : parseInt(name.slice(1), 10)
-      return Number.isFinite(code) && code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : match
+      const code =
+        name[1] === 'x' || name[1] === 'X'
+          ? parseInt(name.slice(2), 16)
+          : parseInt(name.slice(1), 10)
+      return Number.isFinite(code) && code > 0 && code <= 0x10ffff
+        ? String.fromCodePoint(code)
+        : match
     }
     return NAMED_ENTITIES[name.toLowerCase()] ?? match
   })
 
 export const titleTokens = (title: string) => {
   const folded = decodeEntities(title).toLowerCase().normalize('NFKD').replace(/\p{M}/gu, '')
-  return new Set((folded.match(/[a-z0-9]+/g) || []).filter((word) => word.length > 2 && !STOP.has(word)))
+  return new Set(
+    (folded.match(/[a-z0-9]+/g) || []).filter((word) => word.length > 2 && !STOP.has(word)),
+  )
 }
 
-export const canonicalURL = (url: string) => url.replace(/[?#].*$/, '').replace(/\/+$/, '').toLowerCase()
+export const canonicalURL = (url: string) =>
+  url
+    .replace(/[?#].*$/, '')
+    .replace(/\/+$/, '')
+    .toLowerCase()
 
 export const makeExcerpt = (html: string) => {
-  const text = decodeEntities(html.replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim()
+  const text = decodeEntities(html.replace(/<[^>]+>/g, ' '))
+    .replace(/\s+/g, ' ')
+    .trim()
   if (text.length <= EXCERPT_LENGTH) return text
   const cut = text.slice(0, EXCERPT_LENGTH)
   const lastSpace = cut.lastIndexOf(' ')
@@ -129,7 +142,9 @@ const PUBLISHER_ALIASES: Record<string, string> = {
 // registrable domain is the same rule with fewer aliases to keep: rss.nytimes.com and nytimes.com are one
 // newsroom.
 export const publisherOf = (entry: Pick<SlimEntry, 'siteUrl'>) => {
-  const host = (entry.siteUrl.match(/^[a-z]+:\/\/([^/?#:]+)/i)?.[1] || entry.siteUrl).toLowerCase().replace(/^www\./, '')
+  const host = (entry.siteUrl.match(/^[a-z]+:\/\/([^/?#:]+)/i)?.[1] || entry.siteUrl)
+    .toLowerCase()
+    .replace(/^www\./, '')
   const labels = host.split('.')
   const lastTwo = labels.slice(-2).join('.')
   const domain = TWO_LEVEL_SUFFIXES.has(lastTwo) ? labels.slice(-3).join('.') : lastTwo
@@ -143,7 +158,8 @@ export const hackerNewsItemId = (commentsUrl: string) => {
 
 type Story = EditionStory & { leadFeedTitle: string }
 
-const ageHours = (publishedAt: string, now: number) => (now - new Date(publishedAt).getTime()) / 3_600_000
+const ageHours = (publishedAt: string, now: number) =>
+  (now - new Date(publishedAt).getTime()) / 3_600_000
 
 // Cross-source dedupe: entries from DIFFERENT feeds join on the same canonical URL, or on titles sharing at
 // least three tokens with Jaccard >= .5. Same-feed entries join only on URL. Candidate pairs come from an
@@ -210,13 +226,16 @@ export const rankEdition = ({
   const stories: Story[] = clusterEntries(entries).map((group) => {
     const publishers = [...new Set(group.map(publisherOf))].sort()
     const comments = Math.max(...group.map((entry) => hnComments[String(entry.id)] || 0))
-    const recency = Math.max(...group.map((entry) => 0.5 ** (ageHours(entry.publishedAt, now) / HALF_LIFE_HOURS)))
+    const recency = Math.max(
+      ...group.map((entry) => 0.5 ** (ageHours(entry.publishedAt, now) / HALF_LIFE_HOURS)),
+    )
     const commentWeight = 1 + Math.log10(1 + comments) / 2
     const corroboration = 1 + 0.5 * (publishers.length - 1)
     // The lead copy is the longest text, then the youngest.
     const lead = group.reduce((best, entry) =>
       entry.contentLength > best.contentLength ||
-      (entry.contentLength === best.contentLength && ageHours(entry.publishedAt, now) < ageHours(best.publishedAt, now))
+      (entry.contentLength === best.contentLength &&
+        ageHours(entry.publishedAt, now) < ageHours(best.publishedAt, now))
         ? entry
         : best,
     )
@@ -262,7 +281,8 @@ export const rankEdition = ({
   // The spike named one reader's five categories by hand; the general form is the reader's own categories,
   // busiest first.
   const categoryCounts = new Map<string, number>()
-  for (const story of stories) categoryCounts.set(story.category, (categoryCounts.get(story.category) || 0) + 1)
+  for (const story of stories)
+    categoryCounts.set(story.category, (categoryCounts.get(story.category) || 0) + 1)
   const categories = [...categoryCounts.entries()]
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
     .slice(0, SECTION_COUNT)

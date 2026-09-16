@@ -26,7 +26,8 @@ const upstashStore = (restURL: string, token: string): EditionStore => {
   }
 
   return {
-    acquireLock: async (key, ttlSeconds) => (await command<null | string>(['SET', key, '1', 'NX', 'EX', ttlSeconds])) === 'OK',
+    acquireLock: async (key, ttlSeconds) =>
+      (await command<null | string>(['SET', key, '1', 'NX', 'EX', ttlSeconds])) === 'OK',
     del: async (key) => {
       await command(['DEL', key])
     },

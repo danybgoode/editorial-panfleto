@@ -25,7 +25,10 @@ const MAX_PAGES = 5
 const HN_CONCURRENCY = 8
 
 export type EditionSource = {
-  fetchEntriesPage: (params: { afterEntryId: number; publishedAfter: number }) => Promise<ReaderEntry[]>
+  fetchEntriesPage: (params: {
+    afterEntryId: number
+    publishedAfter: number
+  }) => Promise<ReaderEntry[]>
   fetchHackerNewsComments: (itemId: string) => Promise<number>
 }
 
@@ -66,7 +69,9 @@ const encode = (stored: StoredEdition) => gzipSync(JSON.stringify(stored)).toStr
 const decode = (value: null | string): StoredEdition | null => {
   if (!value) return null
   try {
-    const stored = JSON.parse(gunzipSync(Buffer.from(value, 'base64')).toString('utf8')) as StoredEdition
+    const stored = JSON.parse(
+      gunzipSync(Buffer.from(value, 'base64')).toString('utf8'),
+    ) as StoredEdition
     return stored.v === 1 ? stored : null
   } catch {
     return null
@@ -152,21 +157,41 @@ const assemble = ({
 
 export const buildFullEdition = async (userId: number, source: EditionSource, now: number) => {
   const entries = await fetchSince(source, 0, now)
-  return assemble({ entries, fullBuiltAt: now, hnComments: await fetchCommentCounts(source, entries), now, userId })
+  return assemble({
+    entries,
+    fullBuiltAt: now,
+    hnComments: await fetchCommentCounts(source, entries),
+    now,
+    userId,
+  })
 }
 
-export const refreshEditionIncrementally = async (stored: StoredEdition, source: EditionSource, now: number) => {
+export const refreshEditionIncrementally = async (
+  stored: StoredEdition,
+  source: EditionSource,
+  now: number,
+) => {
   const arrived = await fetchSince(source, stored.newestEntryId, now)
   const byId = new Map(stored.entries.map((entry) => [entry.id, entry]))
   for (const entry of arrived) byId.set(entry.id, entry)
 
   const dayStart = now - DAY_MS
-  const entries = [...byId.values()].filter((entry) => new Date(entry.publishedAt).getTime() > dayStart)
+  const entries = [...byId.values()].filter(
+    (entry) => new Date(entry.publishedAt).getTime() > dayStart,
+  )
   const kept = new Set(entries.map((entry) => String(entry.id)))
-  const hnComments = Object.fromEntries(Object.entries(stored.hnComments).filter(([id]) => kept.has(id)))
+  const hnComments = Object.fromEntries(
+    Object.entries(stored.hnComments).filter(([id]) => kept.has(id)),
+  )
   Object.assign(hnComments, await fetchCommentCounts(source, arrived))
 
-  const next = assemble({ entries, fullBuiltAt: stored.fullBuiltAt, hnComments, now, userId: stored.userId })
+  const next = assemble({
+    entries,
+    fullBuiltAt: stored.fullBuiltAt,
+    hnComments,
+    now,
+    userId: stored.userId,
+  })
   // Keep the high-water mark even if everything past it has aged out of the day.
   next.newestEntryId = Math.max(next.newestEntryId, stored.newestEntryId)
   return next
@@ -216,7 +241,9 @@ export const loadEdition = async ({
         await store.del(key)
         return
       }
-      console.error('[tu-edicion] edition refresh failed; serving the stored copy', { message: String(error) })
+      console.error('[tu-edicion] edition refresh failed; serving the stored copy', {
+        message: String(error),
+      })
     } finally {
       await store.del(lock).catch(() => undefined)
     }
