@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import React from 'react'
 
 import type { EditionStory } from '@/lib/personalized/ranking'
@@ -79,7 +80,9 @@ export function StoryCard({
           <span className="editorial-kicker">{story.category}</span>
         </div>
         <h2 className="editorial-card__headline">
-          {href ? (
+          {story.id ? (
+            <Link href={`/tu-edicion/articulo/${story.id}`}>{story.title}</Link>
+          ) : href ? (
             <a href={href} rel="noopener noreferrer" target="_blank">
               {story.title}
             </a>
@@ -89,7 +92,21 @@ export function StoryCard({
         </h2>
         {showSummary && story.excerpt && <p className="editorial-card__summary">{story.excerpt}</p>}
         <div className="editorial-byline">
-          <span>{story.feedTitle}</span>
+          <span>
+            {story.feedTitle}
+            {href && (
+              <a
+                aria-label={`Abrir en ${story.feedTitle}`}
+                className="ml-1 text-xs text-[var(--ep-muted)] hover:text-[var(--ep-ink)] hover:underline inline-block"
+                href={href}
+                rel="noopener noreferrer"
+                target="_blank"
+                title="Abrir fuente original"
+              >
+                ↗
+              </a>
+            )}
+          </span>
           <time dateTime={story.publishedAt}>{formatAge(story.publishedAt, now)}</time>
         </div>
         <StorySignals story={story} />

@@ -68,6 +68,7 @@ describe('corroboration counts publishers, not feeds', () => {
 
     const edition = rank([bbc, guardian])
     expect(edition.front).toHaveLength(1)
+    expect(edition.front[0].id).toBeDefined()
     expect(edition.front[0].sources).toEqual(['BBC', 'theguardian.com'])
     expect(edition.front[0].score).toBeCloseTo(0.5 ** (1 / 6) * 1.5)
     expect(edition.clusterCount).toBe(1)
