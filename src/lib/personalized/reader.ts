@@ -1,4 +1,4 @@
-import { MinifluxRequestError, minifluxFetchAs } from '../miniflux/client'
+import { type MinifluxEntry, MinifluxRequestError, minifluxFetchAs } from '../miniflux/client'
 import { isPlausibleToken } from './session'
 
 // Reading AS a reader, with their own key. Every outcome that matters to them is split out: "the token is
@@ -103,3 +103,93 @@ export const fetchHackerNewsComments = async (itemId: string): Promise<number> =
     return 0
   }
 }
+
+export type ReaderArticle = {
+  author?: string
+  categoryTitle: string
+  commentsUrl?: string
+  content: string
+  feedSiteUrl?: string
+  feedTitle: string
+  id: number
+  isThin: boolean
+  publishedAt: string
+  readingTime: number
+  title: string
+  url: string
+}
+
+export const ARTICLE_TIMEOUT_MS = 15000
+export const THIN_CONTENT_THRESHOLD = 1000
+
+export const stripTags = (html: string): string =>
+  html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+
+export const isThinContent = (content?: string): boolean => {
+  if (!content) return true
+  return stripTags(content).length < THIN_CONTENT_THRESHOLD
+}
+
+export const fetchReaderArticle = async (
+  token: string,
+  entryId: number,
+  options?: {
+    forceFetchOriginal?: boolean
+    timeoutMs?: number
+  },
+): Promise<ReaderArticle> => {
+  const timeoutMs = options?.timeoutMs ?? ARTICLE_TIMEOUT_MS
+
+  const entry = await minifluxFetchAs<MinifluxEntry>(token, `/entries/${entryId}`, {
+    timeoutMs,
+  })
+
+  let content = entry.content || ''
+  let readingTime = entry.reading_time || 0
+  let isThin = isThinContent(content)
+
+  // If thin or explicitly requested, trigger Miniflux's autofetch + unwall fallback pipeline
+  if (isThin || options?.forceFetchOriginal) {
+    try {
+      const scraped = await minifluxFetchAs<{ content?: string; reading_time?: number }>(
+        token,
+        `/entries/${entryId}/fetch-content?update_content=true`,
+        { timeoutMs },
+      )
+      if (scraped?.content) {
+        if (!isThinContent(scraped.content)) {
+          content = scraped.content
+          if (scraped.reading_time) readingTime = scraped.reading_time
+          isThin = false
+        } else if (scraped.content.length > content.length) {
+          content = scraped.content
+          if (scraped.reading_time) readingTime = scraped.reading_time
+          isThin = isThinContent(content)
+        }
+      }
+    } catch (error) {
+      // Miniflux failed to scrape original content (e.g. anti-bot/paywall).
+      // Degrade gracefully to what we have in the entry rather than failing the whole page.
+      console.warn(`[tu-edicion] fetch-content for entry ${entryId} fallback failed:`, error)
+    }
+  }
+
+  const estimatedReadingTime =
+    readingTime || Math.max(1, Math.round(stripTags(content).length / 1000))
+
+  return {
+    author: entry.author || undefined,
+    categoryTitle: entry.feed?.category?.title || entry.category?.title || 'Sin categoría',
+    commentsUrl: entry.comments_url || undefined,
+    content,
+    feedSiteUrl: entry.feed?.site_url || entry.feed?.feed_url || undefined,
+    feedTitle: entry.feed?.title || '',
+    id: entry.id,
+    isThin,
+    publishedAt: entry.published_at || new Date().toISOString(),
+    readingTime: estimatedReadingTime,
+    title: entry.title,
+    url: entry.url,
+  }
+}
+

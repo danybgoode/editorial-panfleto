@@ -25,6 +25,7 @@ export type EditionStory = {
   commentsUrl: string
   excerpt: string
   feedTitle: string
+  id?: number
   publishedAt: string
   readingTime: number
   score: number
@@ -251,6 +252,7 @@ export const rankEdition = ({
       commentsUrl: lead.commentsUrl,
       excerpt: lead.excerpt,
       feedTitle: lead.feedTitle,
+      id: lead.id,
       leadFeedTitle: lead.feedTitle,
       publishedAt: lead.publishedAt,
       readingTime: lead.readingTime,

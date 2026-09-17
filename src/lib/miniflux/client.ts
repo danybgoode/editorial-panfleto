@@ -1,20 +1,24 @@
 export type MinifluxEntry = {
-  id: number
-  title: string
-  url: string
-  comments_url?: string
   author?: string
-  content?: string
-  feed?: {
-    id: number
-    title: string
-  }
   category?: {
     id: number
     title: string
   }
-  published_at?: string
+  comments_url?: string
+  content?: string
   created_at?: string
+  feed?: {
+    category?: MinifluxCategory
+    feed_url?: string
+    id: number
+    site_url?: string
+    title: string
+  }
+  id: number
+  published_at?: string
+  reading_time?: number
+  title: string
+  url: string
 }
 
 export type MinifluxCategory = {
