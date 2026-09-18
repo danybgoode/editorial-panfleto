@@ -13,6 +13,8 @@ import { ThemeSelector } from '@/providers/Theme/ThemeSelector'
 // The personalized edition's front door (fluxonline personalized-edition). It points at the connect page,
 // which also sends an already-connected reader on to their edition, so the header stays static and cached.
 const EDITION_HREF = '/tu-edicion/conectar'
+// Link to the reader (panfleto-reader)
+const READER_HREF = 'https://app.panfleto.win/feeds'
 
 export const HeaderNav: React.FC<{
   data: HeaderType
@@ -44,6 +46,9 @@ export const HeaderNav: React.FC<{
               Tu edición
             </Link>
           )}
+          <Link className="site-nav__reader" href={READER_HREF} prefetch={false}>
+            Mi Lector
+          </Link>
           <ThemeSelector />
           <Link className="site-nav__search" href="/search">
             <span className="sr-only">Buscar</span>
@@ -68,6 +73,9 @@ export const HeaderNav: React.FC<{
               Tu edición
             </Link>
           )}
+          <Link href={READER_HREF} onClick={() => setOpen(false)} prefetch={false}>
+            Mi Lector
+          </Link>
           <Link href="/search" onClick={() => setOpen(false)}>
             Buscar
           </Link>

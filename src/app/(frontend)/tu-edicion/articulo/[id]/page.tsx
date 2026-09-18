@@ -123,6 +123,15 @@ export default async function PersonalizedArticlePage({ params }: PageProps) {
           </Link>
           <a
             className="tu-edicion-source-link text-xs underline"
+            href={`https://app.panfleto.win/entry/${entryId}`}
+            rel="noopener noreferrer"
+            target="_blank"
+            title="Abrir en Mi Lector"
+          >
+            Ver en Mi Lector ↗
+          </a>
+          <a
+            className="tu-edicion-source-link text-xs underline"
             href={article.url}
             rel="noopener noreferrer"
             target="_blank"
