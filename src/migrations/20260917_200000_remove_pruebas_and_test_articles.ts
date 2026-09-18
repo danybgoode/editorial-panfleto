@@ -8,16 +8,18 @@ export async function up({ db, payload: _payload, req: _req }: MigrateUpArgs): P
     BEGIN
       -- Delete versions relations and versions of old test articles
       IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = '_articles_v_version_gallery') THEN
-        DELETE FROM "_articles_v_version_gallery" WHERE "_version_id" IN (
+        DELETE FROM "_articles_v_version_gallery" WHERE "_parent_id" IN (
           SELECT "id" FROM "_articles_v" WHERE "version_published_at" < '2026-09-01' 
           OR "version_section_id" IN (SELECT "id" FROM "sections" WHERE LOWER("slug") = 'pruebas' OR LOWER("name") = 'pruebas')
+          OR "parent_id" IN (SELECT "id" FROM "articles" WHERE "published_at" < '2026-09-01' OR "section_id" IN (SELECT "id" FROM "sections" WHERE LOWER("slug") = 'pruebas' OR LOWER("name") = 'pruebas'))
         );
       END IF;
 
       IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = '_articles_v_version_populated_authors') THEN
-        DELETE FROM "_articles_v_version_populated_authors" WHERE "_version_id" IN (
+        DELETE FROM "_articles_v_version_populated_authors" WHERE "_parent_id" IN (
           SELECT "id" FROM "_articles_v" WHERE "version_published_at" < '2026-09-01' 
           OR "version_section_id" IN (SELECT "id" FROM "sections" WHERE LOWER("slug") = 'pruebas' OR LOWER("name") = 'pruebas')
+          OR "parent_id" IN (SELECT "id" FROM "articles" WHERE "published_at" < '2026-09-01' OR "section_id" IN (SELECT "id" FROM "sections" WHERE LOWER("slug") = 'pruebas' OR LOWER("name") = 'pruebas'))
         );
       END IF;
 
@@ -25,12 +27,14 @@ export async function up({ db, payload: _payload, req: _req }: MigrateUpArgs): P
         DELETE FROM "_articles_v_rels" WHERE "parent_id" IN (
           SELECT "id" FROM "_articles_v" WHERE "version_published_at" < '2026-09-01' 
           OR "version_section_id" IN (SELECT "id" FROM "sections" WHERE LOWER("slug") = 'pruebas' OR LOWER("name") = 'pruebas')
+          OR "parent_id" IN (SELECT "id" FROM "articles" WHERE "published_at" < '2026-09-01' OR "section_id" IN (SELECT "id" FROM "sections" WHERE LOWER("slug") = 'pruebas' OR LOWER("name") = 'pruebas'))
         );
       END IF;
 
       IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = '_articles_v') THEN
         DELETE FROM "_articles_v" WHERE "version_published_at" < '2026-09-01' 
-        OR "version_section_id" IN (SELECT "id" FROM "sections" WHERE LOWER("slug") = 'pruebas' OR LOWER("name") = 'pruebas');
+        OR "version_section_id" IN (SELECT "id" FROM "sections" WHERE LOWER("slug") = 'pruebas' OR LOWER("name") = 'pruebas')
+        OR "parent_id" IN (SELECT "id" FROM "articles" WHERE "published_at" < '2026-09-01' OR "section_id" IN (SELECT "id" FROM "sections" WHERE LOWER("slug") = 'pruebas' OR LOWER("name") = 'pruebas'));
       END IF;
 
       -- Delete article gallery, populated authors, relations, and articles
@@ -62,7 +66,7 @@ export async function up({ db, payload: _payload, req: _req }: MigrateUpArgs): P
 
       -- Delete breadcrumbs and the pruebas section itself
       IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'sections_breadcrumbs') THEN
-        DELETE FROM "sections_breadcrumbs" WHERE "parent_id" IN (
+        DELETE FROM "sections_breadcrumbs" WHERE "_parent_id" IN (
           SELECT "id" FROM "sections" WHERE LOWER("slug") = 'pruebas' OR LOWER("name") = 'pruebas'
         );
       END IF;
