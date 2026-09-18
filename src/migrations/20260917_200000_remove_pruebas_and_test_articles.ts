@@ -64,6 +64,13 @@ export async function up({ db, payload: _payload, req: _req }: MigrateUpArgs): P
         OR "section_id" IN (SELECT "id" FROM "sections" WHERE LOWER("slug") = 'pruebas' OR LOWER("name") = 'pruebas');
       END IF;
 
+      -- Delete any miniflux mappings referencing the pruebas section
+      IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'miniflux_mappings') THEN
+        DELETE FROM "miniflux_mappings" WHERE "section_id" IN (
+          SELECT "id" FROM "sections" WHERE LOWER("slug") = 'pruebas' OR LOWER("name") = 'pruebas'
+        );
+      END IF;
+
       -- Delete breadcrumbs and the pruebas section itself
       IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'sections_breadcrumbs') THEN
         DELETE FROM "sections_breadcrumbs" WHERE "_parent_id" IN (
