@@ -11,7 +11,7 @@ export type HNThread = {
   title?: string
   author?: string
   points?: number
-  created_at: string
+  created_at?: string
   children: HNComment[]
   totalComments: number
 }
@@ -96,6 +96,8 @@ export async function fetchHackerNewsThreadFromPanfleto(commentsUrl: string): Pr
       id: extractHNIdFromUrl(commentsUrl) || 0,
       children,
       totalComments,
+      // These fields are not available from panfleto API, will be undefined
+      // When needed, they should be fetched from Algolia
     }
   } catch (e) {
     console.warn(`[comments] could not fetch via panfleto API:`, e)
