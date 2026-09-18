@@ -520,6 +520,10 @@
   align-items: start;
 }
 
+.editorial-card:not(:has(.editorial-card__image)) {
+  grid-template-columns: 1fr;
+}
+
 .editorial-card:not(.editorial-card--lead):not(.editorial-card--feature) .editorial-card__image {
   grid-column: 2;
   grid-row: 1;

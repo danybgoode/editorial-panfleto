@@ -54,17 +54,20 @@ export function StorySignals({ story }: { story: EditionStory }) {
 export function StoryCard({
   className,
   now,
+  showImage = true,
   showSummary = true,
   story,
   variant = 'compact',
 }: {
   className?: string
   now: number
+  showImage?: boolean
   showSummary?: boolean
   story: EditionStory
   variant?: 'compact' | 'lead' | 'stream'
 }) {
   const href = safeHref(story.url)
+  const articleHref = story.id ? `/tu-edicion/articulo/${story.id}` : href
 
   return (
     <article
@@ -75,6 +78,21 @@ export function StoryCard({
         className,
       )}
     >
+      {showImage && story.imageUrl && articleHref && (
+        <Link
+          aria-label={story.title}
+          className="editorial-card__image"
+          href={articleHref}
+          tabIndex={-1}
+        >
+          <img
+            alt={story.title}
+            className="h-full w-full object-cover"
+            loading={variant === 'lead' ? 'eager' : 'lazy'}
+            src={story.imageUrl}
+          />
+        </Link>
+      )}
       <div className="editorial-card__body">
         <div className="editorial-meta-row">
           <span className="editorial-kicker">{story.category}</span>

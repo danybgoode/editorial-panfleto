@@ -3,6 +3,7 @@ import { gunzipSync, gzipSync } from 'node:zlib'
 import { hackerNewsItemId, makeExcerpt, rankEdition, type Edition, type SlimEntry } from './ranking'
 import {
   ENTRIES_PAGE_LIMIT,
+  extractLeadImage,
   isUnauthorizedError,
   type ReaderEntry,
   type ReaderIdentity,
@@ -113,6 +114,7 @@ export const toSlimEntry = (entry: ReaderEntry): SlimEntry => ({
   feedId: entry.feed_id,
   feedTitle: entry.feed.title || '',
   id: entry.id,
+  imageUrl: extractLeadImage(entry.content, entry.enclosures),
   publishedAt: entry.published_at,
   readingTime: entry.reading_time || 0,
   siteUrl: entry.feed.site_url || entry.feed.feed_url || '',

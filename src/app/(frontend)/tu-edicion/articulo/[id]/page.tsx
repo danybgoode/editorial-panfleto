@@ -4,8 +4,14 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import React from 'react'
 
+import { ArticleComments } from '@/components/Editorial/ArticleComments'
 import { PaywallRail } from '@/components/Editorial/PaywallRail'
 import { StoryCard, StorySignals } from '@/components/Editorial/StoryCard'
+import {
+  fetchHackerNewsThread,
+  getHackerNewsItemId,
+  type HNThread,
+} from '@/lib/comments/hackernews'
 import { MinifluxRequestError } from '@/lib/miniflux/client'
 import { loadPersonalizedEdition } from '@/lib/personalized/load'
 import type { EditionStory } from '@/lib/personalized/ranking'
@@ -51,7 +57,17 @@ async function loadArticleData(
     console.warn('[tu-edicion] could not load background edition for article context:', editionError)
   }
 
-  return { article, matchedStory, now, relatedStories }
+  let commentsThread: HNThread | null = null
+  const hnId = getHackerNewsItemId(article.commentsUrl, article.url)
+  if (hnId) {
+    try {
+      commentsThread = await fetchHackerNewsThread(hnId)
+    } catch (e) {
+      console.warn('[tu-edicion] could not load comments:', e)
+    }
+  }
+
+  return { article, commentsThread, matchedStory, now, relatedStories }
 }
 
 export default async function PersonalizedArticlePage({ params }: PageProps) {
@@ -75,7 +91,7 @@ export default async function PersonalizedArticlePage({ params }: PageProps) {
     throw error
   }
 
-  const { article, matchedStory, now, relatedStories } = data
+  const { article, commentsThread, matchedStory, now, relatedStories } = data
 
   return (
     <article className="article-page">
@@ -117,11 +133,11 @@ export default async function PersonalizedArticlePage({ params }: PageProps) {
           {article.commentsUrl && (
             <a
               className="tu-edicion-source-link text-xs underline"
-              href={article.commentsUrl}
-              rel="noopener noreferrer"
-              target="_blank"
+              href={commentsThread ? '#article-comments' : article.commentsUrl}
+              rel={commentsThread ? undefined : 'noopener noreferrer'}
+              target={commentsThread ? undefined : '_blank'}
             >
-              Comentarios ↗
+              {commentsThread ? `Comentarios (${commentsThread.totalComments}) ↓` : 'Comentarios ↗'}
             </a>
           )}
         </aside>
@@ -147,6 +163,16 @@ export default async function PersonalizedArticlePage({ params }: PageProps) {
 
           {/* Paywall rail told below the article, matching Miniflux */}
           <PaywallRail articleURL={article.url} />
+
+          {commentsThread && (
+            <div id="article-comments">
+              <ArticleComments
+                comments={commentsThread.children}
+                commentsUrl={article.commentsUrl || `https://news.ycombinator.com/item?id=${commentsThread.id}`}
+                totalCount={commentsThread.totalComments}
+              />
+            </div>
+          )}
 
           <div className="mt-8 pt-4 border-t border-[var(--ep-rule)] flex flex-wrap justify-between items-center gap-4 text-sm">
             <Link className="tu-edicion-back-link mb-0" href="/tu-edicion">

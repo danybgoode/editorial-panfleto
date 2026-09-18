@@ -1,11 +1,17 @@
 import type { Metadata } from 'next'
+import { cookies } from 'next/headers'
+import { after } from 'next/server'
 import { notFound } from 'next/navigation'
 import React from 'react'
 
 import { ArticleCard } from '@/components/Editorial/ArticleCard'
 import { SectionHeading } from '@/components/Editorial/SectionHeading'
+import { StoryCard } from '@/components/Editorial/StoryCard'
+import { loadPersonalizedEdition } from '@/lib/personalized/load'
+import { resolvePersonalizedReader } from '@/lib/personalized/resolver'
+import { SESSION_COOKIE } from '@/lib/personalized/session'
 import type { Article } from '@/payload-types'
-import { getSectionHref, siteName } from '@/utilities/editorial'
+import { getSectionHref, siteName, slugify } from '@/utilities/editorial'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 import Link from 'next/link'
@@ -52,11 +58,106 @@ export async function generateStaticParams() {
     },
   })
 
-  return sections.docs.map(({ slug }) => ({ slug }))
+  return sections.docs.filter((s) => s.slug?.toLowerCase() !== 'pruebas').map(({ slug }) => ({ slug }))
 }
 
 export default async function SectionPage({ params, searchParams }: Args) {
   const { slug = '' } = await params
+  const decodedSlug = decodeURIComponent(slug).toLowerCase()
+
+  if (decodedSlug === 'pruebas') {
+    notFound()
+  }
+
+  const cookieStore = await cookies()
+  const cookieValue = cookieStore.get(SESSION_COOKIE)?.value
+  const reader = resolvePersonalizedReader(cookieValue)
+
+  if (reader) {
+    const now = Date.now()
+    try {
+      const loaded = await loadPersonalizedEdition(cookieValue, { now })
+      if (loaded?.refresh) after(loaded.refresh)
+
+      if (loaded?.edition) {
+        const userSections = loaded.edition.sections
+        const matchedSection = userSections.find(
+          (s) =>
+            slugify(s.category) === decodedSlug ||
+            s.category.toLowerCase() === decodedSlug,
+        )
+
+        const otherSections = userSections.filter((s) => s !== matchedSection)
+
+        if (matchedSection) {
+          const [leadStory, ...riverStories] = matchedSection.stories
+
+          return (
+            <div className="section-page ep-container">
+              <header className="archive-header section-page__header">
+                <Link className="tu-edicion-back-link" href="/tu-edicion">
+                  ← Volver a Tu edición
+                </Link>
+                <SectionHeading eyebrow="Sección de tu edición">
+                  {matchedSection.category}
+                </SectionHeading>
+                <p>
+                  Hecha con tus fuentes: {matchedSection.stories.length} historias de las últimas
+                  24 horas.
+                </p>
+              </header>
+
+              {leadStory ? (
+                <>
+                  <section aria-label="Portada de sección" className="section-front">
+                    <StoryCard now={now} story={leadStory} variant="lead" />
+                    <div className="section-front__stack">
+                      {riverStories.slice(0, 3).map((story) => (
+                        <StoryCard key={story.url} now={now} showSummary story={story} />
+                      ))}
+                    </div>
+                    {otherSections.length > 0 && (
+                      <aside aria-label="Otras secciones" className="news-rail">
+                        <h2>Otras secciones</h2>
+                        <div>
+                          {otherSections.map((sec) => (
+                            <div key={sec.category} className="py-2 border-b border-[var(--ep-rule)]">
+                              <Link
+                                className="font-semibold text-sm hover:underline"
+                                href={`/sections/${slugify(sec.category)}`}
+                              >
+                                {sec.category} ({sec.stories.length})
+                              </Link>
+                            </div>
+                          ))}
+                        </div>
+                      </aside>
+                    )}
+                  </section>
+
+                  {riverStories.length > 3 && (
+                    <div className="archive-list section-river">
+                      {riverStories.slice(3).map((story) => (
+                        <StoryCard key={story.url} now={now} story={story} variant="stream" />
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="empty-state">
+                  <h1>{matchedSection.category}</h1>
+                  <p>Tus fuentes no han publicado nada en esta sección en las últimas 24 horas.</p>
+                </div>
+              )}
+            </div>
+          )
+        }
+      }
+    } catch (e) {
+      console.error('[sections] error loading personalized edition for section:', e)
+    }
+  }
+
   const { page = '1' } = await searchParams
   const pageNumber = Number(page)
 
@@ -182,6 +283,33 @@ export default async function SectionPage({ params, searchParams }: Args) {
 
 export async function generateMetadata({ params }: Args): Promise<Metadata> {
   const { slug = '' } = await params
+  const decodedSlug = decodeURIComponent(slug).toLowerCase()
+
+  if (decodedSlug === 'pruebas') {
+    return { title: `No encontrado | ${siteName}` }
+  }
+
+  const cookieStore = await cookies()
+  const cookieValue = cookieStore.get(SESSION_COOKIE)?.value
+  const reader = resolvePersonalizedReader(cookieValue)
+
+  if (reader) {
+    try {
+      const loaded = await loadPersonalizedEdition(cookieValue)
+      const matched = loaded?.edition?.sections?.find(
+        (s) => slugify(s.category) === decodedSlug || s.category.toLowerCase() === decodedSlug,
+      )
+      if (matched) {
+        return {
+          title: `${matched.category} · Tu edición | ${siteName}`,
+          robots: { index: false, follow: false },
+        }
+      }
+    } catch {
+      // fallback to payload
+    }
+  }
+
   const payload = await getPayload({ config: configPromise })
   const result = await payload.find({
     collection: 'sections',

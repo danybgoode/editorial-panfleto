@@ -41,11 +41,19 @@ export const identifyReader = async (token: string): Promise<ReaderIdentity> => 
   }
 }
 
+export type ReaderEnclosure = {
+  id?: number
+  mime_type?: string
+  size?: number
+  url: string
+}
+
 // The fields of /v1/entries the edition reads. `content` is only measured and cut to an excerpt; it is never
 // stored (the API has no field selection, so it still has to be downloaded).
 export type ReaderEntry = {
   comments_url?: string
   content?: string
+  enclosures?: ReaderEnclosure[]
   feed: {
     category?: { title?: string }
     feed_url?: string
@@ -58,6 +66,63 @@ export type ReaderEntry = {
   reading_time?: number
   title: string
   url: string
+}
+
+export const extractLeadImage = (
+  content?: string,
+  enclosures?: Array<{ mime_type?: string; url?: string }>,
+): string | undefined => {
+  if (enclosures && enclosures.length > 0) {
+    for (const enc of enclosures) {
+      if (!enc.url) continue
+      const mime = (enc.mime_type || '').toLowerCase()
+      const url = enc.url.toLowerCase()
+      if (
+        mime.startsWith('image/') ||
+        url.endsWith('.jpg') ||
+        url.endsWith('.jpeg') ||
+        url.endsWith('.png') ||
+        url.endsWith('.webp') ||
+        url.endsWith('.avif') ||
+        url.endsWith('.gif')
+      ) {
+        return enc.url
+      }
+    }
+  }
+
+  if (content) {
+    const imgRegex = /<img\b[^>]*?\bsrc=["']([^"']+)["'][^>]*>/gi
+    let match: RegExpExecArray | null
+    while ((match = imgRegex.exec(content)) !== null) {
+      const src = match[1].trim()
+      if (!src.startsWith('http://') && !src.startsWith('https://')) continue
+
+      const lower = src.toLowerCase()
+      if (
+        lower.includes('1x1') ||
+        lower.includes('pixel') ||
+        lower.includes('tracking') ||
+        lower.includes('feedsportal') ||
+        lower.includes('feedburner') ||
+        lower.includes('gravatar.com') ||
+        lower.includes('badge') ||
+        lower.includes('share-button')
+      ) {
+        continue
+      }
+
+      const tagStr = match[0].toLowerCase()
+      const widthMatch = tagStr.match(/width=["']?(\d+)["']?/)
+      const heightMatch = tagStr.match(/height=["']?(\d+)["']?/)
+      if (widthMatch && parseInt(widthMatch[1], 10) <= 2) continue
+      if (heightMatch && parseInt(heightMatch[1], 10) <= 2) continue
+
+      return src
+    }
+  }
+
+  return undefined
 }
 
 export const ENTRIES_PAGE_LIMIT = 1000

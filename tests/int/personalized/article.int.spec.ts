@@ -13,7 +13,7 @@ afterEach(() => {
 })
 
 describe('Paywall Bypass rail links', () => {
-  it('generates the exact 3 links: archive.ph, archive.is, and unwall.app', () => {
+  it('generates the bypass links including RemovePaywall', () => {
     const articleURL = 'https://www.theguardian.com/world/2026/sep/17/example-story'
     const links = getPaywallBypassLinks(articleURL)
 
@@ -29,6 +29,10 @@ describe('Paywall Bypass rail links', () => {
       {
         name: 'unwall.app',
         url: 'https://unwall.app/www.theguardian.com/world/2026/sep/17/example-story',
+      },
+      {
+        name: 'RemovePaywall',
+        url: 'https://www.removepaywall.com/search?url=https%3A%2F%2Fwww.theguardian.com%2Fworld%2F2026%2Fsep%2F17%2Fexample-story',
       },
     ])
   })

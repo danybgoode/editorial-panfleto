@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { after } from 'next/server'
 import React from 'react'
@@ -11,7 +12,7 @@ import { ReaderTokenRejected, ReaderUnavailable } from '@/lib/personalized/editi
 import { loadPersonalizedEdition } from '@/lib/personalized/load'
 import { resolvePersonalizedReader } from '@/lib/personalized/resolver'
 import { SESSION_COOKIE } from '@/lib/personalized/session'
-import { formatEditorialDate } from '@/utilities/editorial'
+import { formatEditorialDate, slugify } from '@/utilities/editorial'
 
 import { disconnectReader } from './actions'
 
@@ -119,7 +120,14 @@ export default async function PersonalizedEditionPage() {
             <section className="section-modules ep-container">
               {edition.sections.map((section) => (
                 <div className="section-module" key={section.category}>
-                  <SectionHeading>{section.category}</SectionHeading>
+                  <SectionHeading>
+                    <Link
+                      className="hover:underline"
+                      href={`/sections/${slugify(section.category)}`}
+                    >
+                      {section.category}
+                    </Link>
+                  </SectionHeading>
                   <div>
                     {section.stories.map((story) => (
                       <StoryCard key={story.url} now={now} showSummary={false} story={story} />

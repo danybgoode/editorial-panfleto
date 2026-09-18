@@ -17,6 +17,10 @@ export function getPaywallBypassLinks(articleURL: string) {
       name: 'unwall.app',
       url: `https://unwall.app/${unwallSlug}`,
     },
+    {
+      name: 'RemovePaywall',
+      url: `https://www.removepaywall.com/search?url=${encodeURIComponent(safeURL)}`,
+    },
   ]
 }
 

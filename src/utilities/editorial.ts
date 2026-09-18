@@ -38,9 +38,18 @@ export const formatEditorialDateTime = (date?: null | string) => {
   }).format(new Date(date))
 }
 
+export const slugify = (text: string): string =>
+  text
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/\p{M}/gu, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+
 export const getArticleHref = (article: Pick<Article, 'slug'>) => `/articles/${article.slug}`
 
-export const getSectionHref = (section: Pick<Section, 'slug'>) => `/sections/${section.slug}`
+export const getSectionHref = (section: Pick<Section, 'slug'> | string) =>
+  typeof section === 'string' ? `/sections/${slugify(section)}` : `/sections/${section.slug}`
 
 export const getSectionName = (section?: Article['section'] | null) =>
   section && typeof section === 'object' ? section.name : ''

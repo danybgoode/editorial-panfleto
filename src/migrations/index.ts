@@ -3,6 +3,7 @@ import * as migration_20260711_061353_miniflux_ingestion from './20260711_061353
 import * as migration_20260711_180000_automation_trending from './20260711_180000_automation_trending';
 import * as migration_20260711_210758_newsroom_tasks from './20260711_210758_newsroom_tasks';
 import * as migration_20260713_171500_user_onboarding_email from './20260713_171500_user_onboarding_email';
+import * as migration_20260917_200000_remove_pruebas_and_test_articles from './20260917_200000_remove_pruebas_and_test_articles';
 
 export const migrations = [
   {
@@ -29,5 +30,10 @@ export const migrations = [
     up: migration_20260713_171500_user_onboarding_email.up,
     down: migration_20260713_171500_user_onboarding_email.down,
     name: '20260713_171500_user_onboarding_email',
+  },
+  {
+    up: migration_20260917_200000_remove_pruebas_and_test_articles.up,
+    down: migration_20260917_200000_remove_pruebas_and_test_articles.down,
+    name: '20260917_200000_remove_pruebas_and_test_articles',
   },
 ];

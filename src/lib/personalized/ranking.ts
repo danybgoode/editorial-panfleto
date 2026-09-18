@@ -12,6 +12,7 @@ export type SlimEntry = {
   feedId: number
   feedTitle: string
   id: number
+  imageUrl?: string
   publishedAt: string
   readingTime: number
   siteUrl: string
@@ -26,6 +27,7 @@ export type EditionStory = {
   excerpt: string
   feedTitle: string
   id?: number
+  imageUrl?: string
   publishedAt: string
   readingTime: number
   score: number
@@ -245,6 +247,7 @@ export const rankEdition = ({
         ? entry
         : best,
     )
+    const imageUrl = lead.imageUrl || group.find((e) => Boolean(e.imageUrl))?.imageUrl
 
     return {
       category: lead.categoryTitle,
@@ -253,6 +256,7 @@ export const rankEdition = ({
       excerpt: lead.excerpt,
       feedTitle: lead.feedTitle,
       id: lead.id,
+      imageUrl,
       leadFeedTitle: lead.feedTitle,
       publishedAt: lead.publishedAt,
       readingTime: lead.readingTime,
@@ -292,7 +296,6 @@ export const rankEdition = ({
     categoryCounts.set(story.category, (categoryCounts.get(story.category) || 0) + 1)
   const categories = [...categoryCounts.entries()]
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-    .slice(0, SECTION_COUNT)
     .map(([category]) => category)
 
   const sections = categories
