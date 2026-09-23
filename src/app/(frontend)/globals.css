@@ -858,6 +858,8 @@
   font-family: var(--ep-serif);
   font-size: clamp(1.1rem, 1.3vw, 1.22rem);
   line-height: 1.74;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .payload-richtext :where(p, ul, ol, blockquote, figure, table) {
@@ -904,6 +906,17 @@
   border-collapse: collapse;
   font-family: var(--ep-sans);
   font-size: 0.92rem;
+}
+
+.payload-richtext pre {
+  overflow-x: auto;
+  word-break: break-all;
+  max-width: 100%;
+}
+
+.payload-richtext code {
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .payload-richtext th,
@@ -1169,6 +1182,23 @@
   .opinion-module__grid,
   .article-related__grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (width < 48rem) {
+  .payload-richtext {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .payload-richtext * {
+    max-width: 100%;
+    overflow-wrap: break-word;
+  }
+
+  .payload-richtext pre {
+    white-space: pre-wrap;
+    word-break: break-all;
   }
 }
 
