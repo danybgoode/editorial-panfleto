@@ -1331,3 +1331,209 @@
     animation-duration: 0.01ms !important;
   }
 }
+
+/* ------------------------------------------------------------------------------------------------------------
+   Reader (Tu edición): story images, related stories, source embed.
+   These have their own class names on purpose. The related list used to reuse `.editorial-card` / `.news-rail`,
+   whose `:not(...):not(...)` selectors out-ranked the article-aside overrides and broke the grid.
+   ------------------------------------------------------------------------------------------------------------ */
+
+.story-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* An image the reader script hid (broken, or icon-sized) must stay hidden whatever display the theme sets. */
+.payload-richtext [hidden] {
+  display: none !important;
+}
+
+.related-stories {
+  margin-top: 2.5rem;
+  min-width: 0;
+  max-width: 100%;
+  border-top: 2px solid var(--ep-ink);
+  padding-top: 0.85rem;
+}
+
+.related-stories__title {
+  font-family: var(--ep-sans);
+  font-size: clamp(1.2rem, 2vw, 1.65rem);
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.related-stories__list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.related-story {
+  display: grid;
+  gap: 0.8rem;
+  padding-block: 1.35rem;
+  border-bottom: 1px solid var(--ep-rule);
+}
+
+.related-story:last-child {
+  border-bottom: 0;
+}
+
+.related-story__media {
+  display: block;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  background: var(--ep-paper-muted);
+}
+
+.related-story__body {
+  display: grid;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.related-story__headline {
+  font-family: var(--ep-serif);
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1.18;
+  overflow-wrap: break-word;
+  text-wrap: balance;
+}
+
+.related-story__headline a:hover {
+  text-decoration: underline;
+}
+
+.related-story__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.85rem;
+  color: var(--ep-muted);
+  font-family: var(--ep-sans);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+/* Wide phones and small tablets: two across. */
+@media (width >= 36rem) and (width < 48rem) {
+  .related-stories__list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 1.5rem;
+  }
+
+  .related-story:nth-last-child(2):nth-child(odd) {
+    border-bottom: 0;
+  }
+}
+
+/* Desktop: the third column beside the article, not sticky. Four picture cards are taller than the screen,
+   and a sticky box taller than the screen hides its own bottom half. */
+@media (width >= 48rem) {
+  .related-stories {
+    grid-column: 3;
+    align-self: start;
+    margin-top: 0;
+  }
+}
+
+.source-embed {
+  margin-block: 1.75rem;
+  border: 1px solid var(--ep-rule);
+  border-left: 3px solid var(--ep-accent);
+  background: var(--ep-paper-muted);
+  font-family: var(--ep-sans);
+}
+
+.source-embed__intro {
+  display: grid;
+  gap: 0.7rem;
+  padding: 1rem 1.15rem 1.1rem;
+}
+
+.source-embed__title {
+  color: var(--ep-ink);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.source-embed__hint {
+  color: var(--ep-muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.source-embed__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.source-embed__button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0.55rem 1rem;
+  border: 1px solid var(--ep-ink);
+  background: transparent;
+  color: var(--ep-ink);
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.source-embed__button:hover {
+  background: var(--ep-paper);
+}
+
+.source-embed__button--primary {
+  background: var(--ep-ink);
+  color: var(--ep-paper);
+}
+
+.source-embed__button--primary:hover {
+  background: var(--ep-ink);
+  opacity: 0.88;
+}
+
+.source-embed__alternates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.9rem;
+  color: var(--ep-muted);
+  font-size: 0.82rem;
+}
+
+.source-embed__alternates a,
+.source-embed__fallback a {
+  color: var(--ep-accent);
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.source-embed__frame {
+  border-top: 1px solid var(--ep-rule);
+}
+
+.source-embed__frame iframe {
+  display: block;
+  width: 100%;
+  height: min(78svh, 46rem);
+  min-height: 26rem;
+  border: 0;
+  background: #fff;
+}
+
+.source-embed__fallback {
+  padding: 0.7rem 1.15rem;
+  border-top: 1px solid var(--ep-rule);
+  color: var(--ep-muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}

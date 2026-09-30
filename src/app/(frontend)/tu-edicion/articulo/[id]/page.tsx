@@ -2,13 +2,18 @@ import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
-import React from 'react'
+import React, { Suspense } from 'react'
 
 import { ArticleComments } from '@/components/Editorial/ArticleComments'
 import { ArticleQuickActions } from '@/components/Editorial/ArticleQuickActions'
 import { PaywallRail } from '@/components/Editorial/PaywallRail'
-import { StoryCard, StorySignals } from '@/components/Editorial/StoryCard'
+import { ReaderBody } from '@/components/Editorial/ReaderBody'
+import { RelatedStories } from '@/components/Editorial/RelatedStories'
+import { SourceEmbed } from '@/components/Editorial/SourceEmbed'
+import { SourceEmbedGate } from '@/components/Editorial/SourceEmbedGate'
+import { StorySignals } from '@/components/Editorial/StoryCard'
 import { commentSourceLabel, fetchArticleCommentThread } from '@/lib/comments/thread'
+import { hostOf } from '@/lib/personalized/aggregator'
 import { MinifluxRequestError } from '@/lib/miniflux/client'
 import { loadPersonalizedEdition } from '@/lib/personalized/load'
 import type { EditionStory } from '@/lib/personalized/ranking'
@@ -91,6 +96,13 @@ export default async function PersonalizedArticlePage({ params }: PageProps) {
   const sourceLabel = comments
     ? commentSourceLabel(comments.source, comments.commentsUrl)
     : article.feedTitle || 'la fuente'
+  // We could not bring the text in (a teaser, a blocked scrape, a body that was only links): offer the
+  // publisher's own page instead of a dead end.
+  const needsSource = article.isThin || !article.content
+  // Through an aggregator the feed is Techmeme but the page is the cited publisher's, so name the host.
+  const publisherLabel = article.permalinkUrl
+    ? hostOf(article.url) || 'la fuente'
+    : article.feedTitle || hostOf(article.url) || 'la fuente'
 
   return (
     <article className="article-page">
@@ -164,25 +176,17 @@ export default async function PersonalizedArticlePage({ params }: PageProps) {
         </aside>
 
         <div className="article-body-wrap">
-          {article.isThin && (
-            <PaywallRail articleURL={article.url} isThinNotice={true} />
-          )}
+          {article.content && <ReaderBody html={article.content} />}
 
-          {article.content ? (
-            <div
-              className="payload-richtext"
-              dangerouslySetInnerHTML={{ __html: article.content }}
-            />
+          {needsSource ? (
+            <Suspense
+              fallback={<SourceEmbed sourceLabel={publisherLabel} url={article.url} verdict="pending" />}
+            >
+              <SourceEmbedGate sourceLabel={publisherLabel} url={article.url} />
+            </Suspense>
           ) : (
-            <div className="empty-state">
-              <p>
-                No se pudo obtener el texto completo de este artículo desde la fuente. Puedes intentar
-                leerlo con las opciones de Paywall Bypass o abrir la fuente original.
-              </p>
-            </div>
+            <PaywallRail articleURL={article.url} />
           )}
-
-          <PaywallRail articleURL={article.url} />
 
           {comments && (
             <div id="article-comments">
@@ -210,21 +214,7 @@ export default async function PersonalizedArticlePage({ params }: PageProps) {
           </div>
         </div>
 
-        {relatedStories.length > 0 && (
-          <aside aria-label="Más de tu edición" className="article-aside news-rail">
-            <h2>Más de tu edición</h2>
-            <div>
-              {relatedStories.map((related) => (
-                <StoryCard
-                  key={related.id ? String(related.id) : related.url}
-                  now={now}
-                  showSummary={false}
-                  story={related}
-                />
-              ))}
-            </div>
-          </aside>
-        )}
+        <RelatedStories now={now} stories={relatedStories} />
       </div>
 
       <ArticleQuickActions commentsHref={commentsHref} showComments={Boolean(commentsHref)} />

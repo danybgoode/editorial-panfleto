@@ -1,7 +1,9 @@
 import { type MinifluxEntry, MinifluxRequestError, minifluxFetchAs } from '../miniflux/client'
 import { extractCitedArticleUrl, isAggregatorUrl } from './aggregator'
 import {
+  enhanceReaderImages,
   extractLeadImage,
+  fetchOpenGraphImage,
   fetchOriginalArticleHtml,
   injectLeadImage,
   normalizeLayoutAttributes,
@@ -132,6 +134,9 @@ export type ReaderArticle = {
   feedTitle: string
   id: number
   isThin: boolean
+  // The best picture we could find for the story: the feed's own, else the publisher's og:image. Undefined when
+  // every candidate was furniture (a share icon, a logo), so callers show a placeholder instead.
+  leadImageUrl?: string
   permalinkUrl?: string
   publishedAt: string
   readingTime: number
@@ -148,6 +153,16 @@ export const stripTags = (html: string): string =>
 export const isThinContent = (content?: string): boolean => {
   if (!content) return true
   return stripTags(content).length < THIN_CONTENT_THRESHOLD
+}
+
+// What the reader will actually see once share buttons, paywall notices and lists of links are gone. A body
+// that is 3,000 characters of "More on this story" links is thin, however long it is before cleaning.
+const cleanedTextLength = (content: string, dropLinkFarms = false): number =>
+  stripTags(stripReaderChrome(promoteLazyImages(content), { dropLinkFarms })).length
+
+export const isThinAfterCleaning = (content?: string, dropLinkFarms = false): boolean => {
+  if (!content) return true
+  return cleanedTextLength(content, dropLinkFarms) < THIN_CONTENT_THRESHOLD
 }
 
 // Strip layout-only attributes that make scraped HTML wider than the viewport.
@@ -192,7 +207,8 @@ export const fetchReaderArticle = async (
     }
   }
 
-  let isThin = isThinContent(content)
+  const dropLinkFarms = aggregator && !usedOriginal
+  let isThin = isThinAfterCleaning(content, dropLinkFarms)
 
   // If thin or explicitly requested, trigger Miniflux's autofetch + unwall fallback pipeline.
   // Aggregator homepages are skipped: fetch-content would scrape Techmeme, not the cited story.
@@ -204,14 +220,14 @@ export const fetchReaderArticle = async (
         { timeoutMs },
       )
       if (scraped?.content) {
-        if (!isThinContent(scraped.content)) {
+        if (!isThinAfterCleaning(scraped.content)) {
           content = scraped.content
           if (scraped.reading_time) readingTime = scraped.reading_time
           isThin = false
-        } else if (scraped.content.length > content.length) {
+        } else if (cleanedTextLength(scraped.content) > cleanedTextLength(content, dropLinkFarms)) {
           content = scraped.content
           if (scraped.reading_time) readingTime = scraped.reading_time
-          isThin = isThinContent(content)
+          isThin = isThinAfterCleaning(content)
         }
       }
     } catch (error) {
@@ -221,24 +237,34 @@ export const fetchReaderArticle = async (
     }
   }
 
-  isThin = isThinContent(content)
+  isThin = isThinAfterCleaning(content, dropLinkFarms)
   const estimatedReadingTime =
-    readingTime || Math.max(1, Math.round(stripTags(content).length / 1000))
+    readingTime || Math.max(1, Math.round(cleanedTextLength(content, dropLinkFarms) / 1000))
   const sourceUrl = citedUrl || entry.url
-  const leadImageUrl = extractLeadImage(content, entry.enclosures)
+  let leadImageUrl = extractLeadImage(content, entry.enclosures)
+
+  // The feed gave us no picture worth using (none, or only share icons and logos). When there is also no body
+  // to look at, ask the publisher which picture it uses for the story. Only in this branch: a full article
+  // without a hero reads fine, and this costs a request to the source.
+  if (!leadImageUrl && isThin) {
+    leadImageUrl = await fetchOpenGraphImage(sourceUrl, Math.min(timeoutMs, 5000))
+  }
 
   return {
     author: entry.author || undefined,
     categoryTitle: entry.feed?.category?.title || entry.category?.title || 'Sin categoría',
     commentsUrl: entry.comments_url || undefined,
-    content: normalizeReaderContent(content, {
-      dropLinkFarms: aggregator && !usedOriginal,
-      leadImageUrl,
-    }),
+    content: enhanceReaderImages(
+      normalizeReaderContent(content, {
+        dropLinkFarms,
+        leadImageUrl,
+      }),
+    ),
     feedSiteUrl,
     feedTitle: entry.feed?.title || '',
     id: entry.id,
     isThin,
+    leadImageUrl,
     permalinkUrl: citedUrl ? entry.url : undefined,
     publishedAt: entry.published_at || new Date().toISOString(),
     readingTime: estimatedReadingTime,

@@ -1,0 +1,2533 @@
+diff --git a/src/app/(frontend)/globals.css b/src/app/(frontend)/globals.css
+index 1974872..46e361f 100644
+--- a/src/app/(frontend)/globals.css
++++ b/src/app/(frontend)/globals.css
+@@ -1331,3 +1331,209 @@
+     animation-duration: 0.01ms !important;
+   }
+ }
++
++/* ------------------------------------------------------------------------------------------------------------
++   Reader (Tu edición): story images, related stories, source embed.
++   These have their own class names on purpose. The related list used to reuse `.editorial-card` / `.news-rail`,
++   whose `:not(...):not(...)` selectors out-ranked the article-aside overrides and broke the grid.
++   ------------------------------------------------------------------------------------------------------------ */
++
++.story-image {
++  display: block;
++  width: 100%;
++  height: 100%;
++  object-fit: cover;
++}
++
++/* An image the reader script hid (broken, or icon-sized) must stay hidden whatever display the theme sets. */
++.payload-richtext [hidden] {
++  display: none !important;
++}
++
++.related-stories {
++  margin-top: 2.5rem;
++  min-width: 0;
++  max-width: 100%;
++  border-top: 2px solid var(--ep-ink);
++  padding-top: 0.85rem;
++}
++
++.related-stories__title {
++  font-family: var(--ep-sans);
++  font-size: clamp(1.2rem, 2vw, 1.65rem);
++  font-weight: 800;
++  line-height: 1.1;
++}
++
++.related-stories__list {
++  display: grid;
++  grid-template-columns: minmax(0, 1fr);
++  margin: 0;
++  padding: 0;
++  list-style: none;
++}
++
++.related-story {
++  display: grid;
++  gap: 0.8rem;
++  padding-block: 1.35rem;
++  border-bottom: 1px solid var(--ep-rule);
++}
++
++.related-story:last-child {
++  border-bottom: 0;
++}
++
++.related-story__media {
++  display: block;
++  overflow: hidden;
++  aspect-ratio: 16 / 9;
++  background: var(--ep-paper-muted);
++}
++
++.related-story__body {
++  display: grid;
++  gap: 0.4rem;
++  min-width: 0;
++}
++
++.related-story__headline {
++  font-family: var(--ep-serif);
++  font-size: 1.3rem;
++  font-weight: 700;
++  line-height: 1.18;
++  overflow-wrap: break-word;
++  text-wrap: balance;
++}
++
++.related-story__headline a:hover {
++  text-decoration: underline;
++}
++
++.related-story__meta {
++  display: flex;
++  flex-wrap: wrap;
++  gap: 0.15rem 0.85rem;
++  color: var(--ep-muted);
++  font-family: var(--ep-sans);
++  font-size: 0.78rem;
++  line-height: 1.4;
++}
++
++/* Wide phones and small tablets: two across. */
++@media (width >= 36rem) and (width < 48rem) {
++  .related-stories__list {
++    grid-template-columns: repeat(2, minmax(0, 1fr));
++    column-gap: 1.5rem;
++  }
++
++  .related-story:nth-last-child(2):nth-child(odd) {
++    border-bottom: 0;
++  }
++}
++
++/* Desktop: the third column beside the article, not sticky. Four picture cards are taller than the screen,
++   and a sticky box taller than the screen hides its own bottom half. */
++@media (width >= 48rem) {
++  .related-stories {
++    grid-column: 3;
++    align-self: start;
++    margin-top: 0;
++  }
++}
++
++.source-embed {
++  margin-block: 1.75rem;
++  border: 1px solid var(--ep-rule);
++  border-left: 3px solid var(--ep-accent);
++  background: var(--ep-paper-muted);
++  font-family: var(--ep-sans);
++}
++
++.source-embed__intro {
++  display: grid;
++  gap: 0.7rem;
++  padding: 1rem 1.15rem 1.1rem;
++}
++
++.source-embed__title {
++  color: var(--ep-ink);
++  font-size: 1rem;
++  font-weight: 700;
++  line-height: 1.3;
++}
++
++.source-embed__hint {
++  color: var(--ep-muted);
++  font-size: 0.92rem;
++  line-height: 1.5;
++}
++
++.source-embed__actions {
++  display: flex;
++  flex-wrap: wrap;
++  gap: 0.6rem;
++}
++
++.source-embed__button {
++  display: inline-flex;
++  align-items: center;
++  min-height: 44px;
++  padding: 0.55rem 1rem;
++  border: 1px solid var(--ep-ink);
++  background: transparent;
++  color: var(--ep-ink);
++  font-size: 0.92rem;
++  font-weight: 700;
++  cursor: pointer;
++}
++
++.source-embed__button:hover {
++  background: var(--ep-paper);
++}
++
++.source-embed__button--primary {
++  background: var(--ep-ink);
++  color: var(--ep-paper);
++}
++
++.source-embed__button--primary:hover {
++  background: var(--ep-ink);
++  opacity: 0.88;
++}
++
++.source-embed__alternates {
++  display: flex;
++  flex-wrap: wrap;
++  gap: 0.3rem 0.9rem;
++  color: var(--ep-muted);
++  font-size: 0.82rem;
++}
++
++.source-embed__alternates a,
++.source-embed__fallback a {
++  color: var(--ep-accent);
++  font-weight: 600;
++  text-decoration: underline;
++}
++
++.source-embed__frame {
++  border-top: 1px solid var(--ep-rule);
++}
++
++.source-embed__frame iframe {
++  display: block;
++  width: 100%;
++  height: min(78svh, 46rem);
++  min-height: 26rem;
++  border: 0;
++  background: #fff;
++}
++
++.source-embed__fallback {
++  padding: 0.7rem 1.15rem;
++  border-top: 1px solid var(--ep-rule);
++  color: var(--ep-muted);
++  font-size: 0.82rem;
++  line-height: 1.45;
++}
+diff --git a/src/app/(frontend)/tu-edicion/articulo/[id]/page.tsx b/src/app/(frontend)/tu-edicion/articulo/[id]/page.tsx
+index 644fe1b..2b7347b 100644
+--- a/src/app/(frontend)/tu-edicion/articulo/[id]/page.tsx
++++ b/src/app/(frontend)/tu-edicion/articulo/[id]/page.tsx
+@@ -2,13 +2,18 @@ import type { Metadata } from 'next'
+ import { cookies } from 'next/headers'
+ import Link from 'next/link'
+ import { notFound, redirect } from 'next/navigation'
+-import React from 'react'
++import React, { Suspense } from 'react'
+ 
+ import { ArticleComments } from '@/components/Editorial/ArticleComments'
+ import { ArticleQuickActions } from '@/components/Editorial/ArticleQuickActions'
+ import { PaywallRail } from '@/components/Editorial/PaywallRail'
+-import { StoryCard, StorySignals } from '@/components/Editorial/StoryCard'
++import { ReaderBody } from '@/components/Editorial/ReaderBody'
++import { RelatedStories } from '@/components/Editorial/RelatedStories'
++import { SourceEmbed } from '@/components/Editorial/SourceEmbed'
++import { SourceEmbedGate } from '@/components/Editorial/SourceEmbedGate'
++import { StorySignals } from '@/components/Editorial/StoryCard'
+ import { commentSourceLabel, fetchArticleCommentThread } from '@/lib/comments/thread'
++import { hostOf } from '@/lib/personalized/aggregator'
+ import { MinifluxRequestError } from '@/lib/miniflux/client'
+ import { loadPersonalizedEdition } from '@/lib/personalized/load'
+ import type { EditionStory } from '@/lib/personalized/ranking'
+@@ -91,6 +96,13 @@ export default async function PersonalizedArticlePage({ params }: PageProps) {
+   const sourceLabel = comments
+     ? commentSourceLabel(comments.source, comments.commentsUrl)
+     : article.feedTitle || 'la fuente'
++  // We could not bring the text in (a teaser, a blocked scrape, a body that was only links): offer the
++  // publisher's own page instead of a dead end.
++  const needsSource = article.isThin || !article.content
++  // Through an aggregator the feed is Techmeme but the page is the cited publisher's, so name the host.
++  const publisherLabel = article.permalinkUrl
++    ? hostOf(article.url) || 'la fuente'
++    : article.feedTitle || hostOf(article.url) || 'la fuente'
+ 
+   return (
+     <article className="article-page">
+@@ -164,26 +176,18 @@ export default async function PersonalizedArticlePage({ params }: PageProps) {
+         </aside>
+ 
+         <div className="article-body-wrap">
+-          {article.isThin && (
+-            <PaywallRail articleURL={article.url} isThinNotice={true} />
+-          )}
++          {article.content && <ReaderBody html={article.content} />}
+ 
+-          {article.content ? (
+-            <div
+-              className="payload-richtext"
+-              dangerouslySetInnerHTML={{ __html: article.content }}
+-            />
++          {needsSource ? (
++            <Suspense
++              fallback={<SourceEmbed sourceLabel={publisherLabel} url={article.url} verdict="pending" />}
++            >
++              <SourceEmbedGate sourceLabel={publisherLabel} url={article.url} />
++            </Suspense>
+           ) : (
+-            <div className="empty-state">
+-              <p>
+-                No se pudo obtener el texto completo de este artículo desde la fuente. Puedes intentar
+-                leerlo con las opciones de Paywall Bypass o abrir la fuente original.
+-              </p>
+-            </div>
++            <PaywallRail articleURL={article.url} />
+           )}
+ 
+-          <PaywallRail articleURL={article.url} />
+-
+           {comments && (
+             <div id="article-comments">
+               <ArticleComments
+@@ -210,21 +214,7 @@ export default async function PersonalizedArticlePage({ params }: PageProps) {
+           </div>
+         </div>
+ 
+-        {relatedStories.length > 0 && (
+-          <aside aria-label="Más de tu edición" className="article-aside news-rail">
+-            <h2>Más de tu edición</h2>
+-            <div>
+-              {relatedStories.map((related) => (
+-                <StoryCard
+-                  key={related.id ? String(related.id) : related.url}
+-                  now={now}
+-                  showSummary={false}
+-                  story={related}
+-                />
+-              ))}
+-            </div>
+-          </aside>
+-        )}
++        <RelatedStories now={now} stories={relatedStories} />
+       </div>
+ 
+       <ArticleQuickActions commentsHref={commentsHref} showComments={Boolean(commentsHref)} />
+diff --git a/src/components/Editorial/ReaderBody.tsx b/src/components/Editorial/ReaderBody.tsx
+new file mode 100644
+index 0000000..54b770a
+--- /dev/null
++++ b/src/components/Editorial/ReaderBody.tsx
+@@ -0,0 +1,66 @@
++'use client'
++
++import React, { useEffect, useRef } from 'react'
++
++import { MIN_BODY_IMAGE_EDGE } from '@/lib/personalized/images'
++
++// The article text, as sanitized HTML from the source. The server has already dropped images that are clearly
++// furniture (share icons, logos, tracking pixels) by URL; this handles what only a browser can know:
++//
++// - a picture that fails to load (broken link, hotlink refused) is removed instead of leaving a broken-image
++//   icon and a gap, together with its <figure> and the <a> around it;
++// - a picture that loads but is icon-sized is removed too.
++//
++// `error` does not bubble, but it does travel the capture phase, so one listener on the wrapper sees them all,
++// including images that were still loading when this mounted. Images that had already failed before hydration
++// have fired their event already, so the effect also checks each image's `complete` state.
++
++const hide = (image: HTMLImageElement) => {
++  const figure = image.closest('figure')
++  const link = image.closest('a')
++
++  if (figure && figure.querySelectorAll('img:not([hidden])').length <= 1) {
++    figure.hidden = true
++    return
++  }
++  if (link && !link.textContent?.trim() && link.querySelectorAll('img:not([hidden])').length <= 1) {
++    link.hidden = true
++    return
++  }
++  image.hidden = true
++}
++
++const tooSmall = (image: HTMLImageElement) =>
++  image.naturalWidth > 0 &&
++  (image.naturalWidth <= MIN_BODY_IMAGE_EDGE || image.naturalHeight <= MIN_BODY_IMAGE_EDGE)
++
++export function ReaderBody({ className = 'payload-richtext', html }: { className?: string; html: string }) {
++  const ref = useRef<HTMLDivElement>(null)
++
++  useEffect(() => {
++    const root = ref.current
++    if (!root) return
++
++    const onError = (event: Event) => {
++      if (event.target instanceof HTMLImageElement) hide(event.target)
++    }
++    const onLoad = (event: Event) => {
++      if (event.target instanceof HTMLImageElement && tooSmall(event.target)) hide(event.target)
++    }
++
++    root.addEventListener('error', onError, true)
++    root.addEventListener('load', onLoad, true)
++
++    for (const image of Array.from(root.querySelectorAll('img'))) {
++      if (!image.complete) continue
++      if (image.naturalWidth === 0 || tooSmall(image)) hide(image)
++    }
++
++    return () => {
++      root.removeEventListener('error', onError, true)
++      root.removeEventListener('load', onLoad, true)
++    }
++  }, [html])
++
++  return <div className={className} dangerouslySetInnerHTML={{ __html: html }} ref={ref} />
++}
+diff --git a/src/components/Editorial/RelatedStories.tsx b/src/components/Editorial/RelatedStories.tsx
+new file mode 100644
+index 0000000..2a31122
+--- /dev/null
++++ b/src/components/Editorial/RelatedStories.tsx
+@@ -0,0 +1,85 @@
++import Link from 'next/link'
++import React from 'react'
++
++import type { EditionStory } from '@/lib/personalized/ranking'
++
++import { formatAge, safeHref } from './StoryCard'
++import { StoryImage } from './StoryImage'
++
++// "Más de tu edición" at the foot of an article. Picture on top, text underneath: on a phone the headline gets
++// the full width instead of what is left beside a thumbnail. It has its own classes on purpose. It used to
++// borrow `.editorial-card` and `.news-rail`, whose grid rules out-ranked the overrides written for it and
++// pushed the headline into the 2rem counter column, one letter wide.
++
++function StoryLink({
++  children,
++  className,
++  href,
++  internal,
++  ...rest
++}: {
++  'aria-hidden'?: boolean
++  children: React.ReactNode
++  className?: string
++  href: string
++  internal: boolean
++  tabIndex?: number
++}) {
++  if (internal) {
++    return (
++      <Link className={className} href={href} {...rest}>
++        {children}
++      </Link>
++    )
++  }
++  return (
++    <a className={className} href={href} rel="noopener noreferrer" target="_blank" {...rest}>
++      {children}
++    </a>
++  )
++}
++
++export function RelatedStories({ now, stories }: { now: number; stories: EditionStory[] }) {
++  const items = stories.flatMap((story) => {
++    const internal = Boolean(story.id)
++    const href = story.id ? `/tu-edicion/articulo/${story.id}` : safeHref(story.url)
++    return href ? [{ href, internal, story }] : []
++  })
++
++  if (items.length === 0) return null
++
++  return (
++    <aside aria-labelledby="related-stories-title" className="related-stories">
++      <h2 className="related-stories__title" id="related-stories-title">
++        Más de tu edición
++      </h2>
++      <ul className="related-stories__list">
++        {items.map(({ href, internal, story }) => (
++          <li className="related-story" key={story.id ? String(story.id) : story.url}>
++            <StoryLink
++              aria-hidden
++              className="related-story__media"
++              href={href}
++              internal={internal}
++              tabIndex={-1}
++            >
++              <StoryImage seed={String(story.id ?? story.url)} src={story.imageUrl} />
++            </StoryLink>
++            <div className="related-story__body">
++              <span className="editorial-kicker">{story.category}</span>
++              <h3 className="related-story__headline">
++                <StoryLink href={href} internal={internal}>
++                  {story.title}
++                </StoryLink>
++              </h3>
++              <p className="related-story__meta">
++                <span>{story.feedTitle}</span>
++                <time dateTime={story.publishedAt}>{formatAge(story.publishedAt, now)}</time>
++              </p>
++            </div>
++          </li>
++        ))}
++      </ul>
++    </aside>
++  )
++}
+diff --git a/src/components/Editorial/SourceEmbed.tsx b/src/components/Editorial/SourceEmbed.tsx
+new file mode 100644
+index 0000000..325d94f
+--- /dev/null
++++ b/src/components/Editorial/SourceEmbed.tsx
+@@ -0,0 +1,105 @@
++'use client'
++
++import React, { useState } from 'react'
++
++import type { EmbedVerdict } from '@/lib/personalized/embed'
++
++import { getPaywallBypassLinks } from './PaywallRail'
++
++// Shown under an article whose full text we could not bring in (the feed sent a teaser, the scraper was
++// blocked, the body was nothing but links). It offers, in order: read the publisher's own page right here,
++// open it on their site, or try one of the alternative-access links.
++//
++// "Read here" is an iframe of the publisher's page. It is only offered when the server asked the publisher and
++// framing is not ruled out (see lib/personalized/embed.ts), and it loads on a tap, not on arrival: a
++// third-party page brings its own ads and trackers, and a reader who only wanted the summary shouldn't pay
++// for them. Pass `autoLoad` to flip that.
++//
++// verdict: 'allowed'  the publisher permits framing
++//          'unknown'  the publisher could not be asked (bot wall, timeout): offer it, with the escape hatch
++//          'blocked'  the publisher forbids framing: no embed, only the ways out
++//          'pending'  still asking: the ways out, no embed yet
++
++export function SourceEmbed({
++  autoLoad = false,
++  sourceLabel,
++  url,
++  verdict,
++}: {
++  autoLoad?: boolean
++  sourceLabel: string
++  url: string
++  verdict: EmbedVerdict | 'pending'
++}) {
++  const canEmbed = verdict === 'allowed' || verdict === 'unknown'
++  const [open, setOpen] = useState(autoLoad && verdict === 'allowed')
++  const alternates = getPaywallBypassLinks(url)
++
++  return (
++    <section aria-label="Leer en la fuente" className="source-embed">
++      <div className="source-embed__intro">
++        <p className="source-embed__title">No pudimos traer el texto completo.</p>
++        {verdict === 'blocked' && (
++          <p className="source-embed__hint">
++            {sourceLabel} no permite mostrar sus páginas dentro de otras. Ábrelo en su sitio o prueba
++            un acceso alternativo.
++          </p>
++        )}
++        {canEmbed && (
++          <p className="source-embed__hint">
++            Puedes leerlo aquí mismo, tal como lo publica {sourceLabel}.
++          </p>
++        )}
++
++        <div className="source-embed__actions">
++          {canEmbed && (
++            <button
++              aria-expanded={open}
++              className="source-embed__button source-embed__button--primary"
++              onClick={() => setOpen((value) => !value)}
++              type="button"
++            >
++              {open ? 'Cerrar vista' : 'Leer aquí'}
++            </button>
++          )}
++          <a
++            className="source-embed__button"
++            href={url}
++            rel="noopener noreferrer"
++            target="_blank"
++          >
++            Abrir en {sourceLabel} ↗
++          </a>
++        </div>
++
++        <p className="source-embed__alternates">
++          <span>Otras formas de leerlo:</span>
++          {alternates.map((link) => (
++            <a href={link.url} key={link.name} rel="noopener noreferrer" target="_blank">
++              {link.name}
++            </a>
++          ))}
++        </p>
++      </div>
++
++      {canEmbed && open && (
++        <div className="source-embed__frame">
++          <iframe
++            loading="lazy"
++            referrerPolicy="strict-origin-when-cross-origin"
++            sandbox="allow-forms allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"
++            src={url}
++            title={`Artículo en ${sourceLabel}`}
++          />
++          <p className="source-embed__fallback">
++            ¿Se ve en blanco? Algunos medios no permiten mostrarse aquí.{' '}
++            <a href={url} rel="noopener noreferrer" target="_blank">
++              Ábrelo en una pestaña nueva
++            </a>
++            .
++          </p>
++        </div>
++      )}
++    </section>
++  )
++}
+diff --git a/src/components/Editorial/SourceEmbedGate.tsx b/src/components/Editorial/SourceEmbedGate.tsx
+new file mode 100644
+index 0000000..ca4661a
+--- /dev/null
++++ b/src/components/Editorial/SourceEmbedGate.tsx
+@@ -0,0 +1,26 @@
++import { headers } from 'next/headers'
++import React from 'react'
++
++import { probeEmbeddable } from '@/lib/personalized/embed'
++import { getServerSideURL } from '@/utilities/getURL'
++
++import { SourceEmbed } from './SourceEmbed'
++
++// Asks the publisher whether its page may be framed, then renders the panel. Meant to sit inside <Suspense>
++// with the panel's "pending" state as the fallback, so the answer (up to a few seconds when a publisher is
++// slow) never holds up the article text above it.
++
++const ownOrigin = async () => {
++  // The host this request arrived on: a publisher's frame-ancestors allow-list is checked against it, and
++  // this site answers on more than one host (production, Vercel previews).
++  const requestHeaders = await headers()
++  const host = requestHeaders.get('x-forwarded-host') || requestHeaders.get('host')
++  if (!host) return getServerSideURL()
++  const protocol = requestHeaders.get('x-forwarded-proto') || (host.startsWith('localhost') ? 'http' : 'https')
++  return `${protocol}://${host}`
++}
++
++export async function SourceEmbedGate({ sourceLabel, url }: { sourceLabel: string; url: string }) {
++  const verdict = await probeEmbeddable(url, { ownOrigin: await ownOrigin() })
++  return <SourceEmbed sourceLabel={sourceLabel} url={url} verdict={verdict} />
++}
+diff --git a/src/components/Editorial/StoryCard.tsx b/src/components/Editorial/StoryCard.tsx
+index c9e37b2..07878df 100644
+--- a/src/components/Editorial/StoryCard.tsx
++++ b/src/components/Editorial/StoryCard.tsx
+@@ -1,13 +1,16 @@
+ import Link from 'next/link'
+ import React from 'react'
+ 
++import { isUsableImageUrl } from '@/lib/personalized/images'
+ import type { EditionStory } from '@/lib/personalized/ranking'
+ import { cn } from '@/utilities/ui'
+ 
++import { StoryImage } from './StoryImage'
++
+ // ArticleCard's sibling for the personalized edition: the same newspaper classes, for a story that lives in
+ // the reader's own feeds rather than in Payload, so it links out to the publisher.
+ 
+-const safeHref = (url: string) => (/^https?:\/\//i.test(url) ? url : undefined)
++export const safeHref = (url: string) => (/^https?:\/\//i.test(url) ? url : undefined)
+ 
+ export const formatAge = (publishedAt: string, now: number) => {
+   const minutes = Math.max(0, Math.round((now - new Date(publishedAt).getTime()) / 60_000))
+@@ -54,6 +57,7 @@ export function StorySignals({ story }: { story: EditionStory }) {
+ export function StoryCard({
+   className,
+   now,
++  placeholder = true,
+   showImage = true,
+   showSummary = true,
+   story,
+@@ -61,6 +65,8 @@ export function StoryCard({
+ }: {
+   className?: string
+   now: number
++  // Show one of our placeholders when the story has no usable picture (false: no image slot at all).
++  placeholder?: boolean
+   showImage?: boolean
+   showSummary?: boolean
+   story: EditionStory
+@@ -78,17 +84,17 @@ export function StoryCard({
+         className,
+       )}
+     >
+-      {showImage && story.imageUrl && articleHref && (
++      {showImage && articleHref && (placeholder || isUsableImageUrl(story.imageUrl)) && (
+         <Link
+           aria-label={story.title}
+           className="editorial-card__image"
+           href={articleHref}
+           tabIndex={-1}
+         >
+-          <img
+-            alt={story.title}
+-            className="h-full w-full object-cover"
+-            loading={variant === 'lead' ? 'eager' : 'lazy'}
++          <StoryImage
++            eager={variant === 'lead'}
++            placeholder={placeholder}
++            seed={String(story.id ?? story.url)}
+             src={story.imageUrl}
+           />
+         </Link>
+diff --git a/src/components/Editorial/StoryImage.tsx b/src/components/Editorial/StoryImage.tsx
+new file mode 100644
+index 0000000..cefd206
+--- /dev/null
++++ b/src/components/Editorial/StoryImage.tsx
+@@ -0,0 +1,66 @@
++'use client'
++
++import React, { useEffect, useRef, useState } from 'react'
++
++import { isUsableImageUrl, MIN_CARD_IMAGE_WIDTH } from '@/lib/personalized/images'
++
++import { StoryPlaceholder } from './StoryPlaceholder'
++
++// The picture for a story card. It shows the source's image only while there is every reason to trust it,
++// and otherwise one of our placeholders, so a card never shows a broken-image icon, a share button or a
++// blurry thumbnail stretched across the column:
++//
++// - the URL is missing or looks like furniture (checked before anything is requested);
++// - the browser reports the load failed (onError);
++// - the image loaded but is too small to stretch (onLoad);
++// - the image already failed before React attached its handlers (the effect checks `complete`).
++
++export function StoryImage({
++  className = 'story-image',
++  eager = false,
++  placeholder = true,
++  seed,
++  src,
++}: {
++  className?: string
++  eager?: boolean
++  // When false, a story without a usable picture renders nothing instead of a placeholder.
++  placeholder?: boolean
++  // Anything stable about the story (its id or URL): the placeholder is chosen from it.
++  seed: string
++  src?: string
++}) {
++  const ref = useRef<HTMLImageElement>(null)
++  const [rejected, setRejected] = useState<string>()
++  const usable = isUsableImageUrl(src)
++
++  const judge = (image: HTMLImageElement) => {
++    if (!image.complete) return
++    if (image.naturalWidth < MIN_CARD_IMAGE_WIDTH) setRejected(src)
++  }
++
++  useEffect(() => {
++    if (ref.current) judge(ref.current)
++    // `judge` closes over `src`, which is the only thing that should re-run this.
++    // eslint-disable-next-line react-hooks/exhaustive-deps
++  }, [src])
++
++  if (!usable || rejected === src) {
++    return placeholder ? <StoryPlaceholder className={className} seed={seed} /> : null
++  }
++
++  return (
++    // eslint-disable-next-line @next/next/no-img-element -- remote feed images have no known host to allow-list
++    <img
++      alt=""
++      className={className}
++      decoding="async"
++      loading={eager ? 'eager' : 'lazy'}
++      onError={() => setRejected(src)}
++      onLoad={(event) => judge(event.currentTarget)}
++      ref={ref}
++      referrerPolicy="no-referrer"
++      src={src}
++    />
++  )
++}
+diff --git a/src/components/Editorial/StoryPlaceholder.tsx b/src/components/Editorial/StoryPlaceholder.tsx
+new file mode 100644
+index 0000000..76896b0
+--- /dev/null
++++ b/src/components/Editorial/StoryPlaceholder.tsx
+@@ -0,0 +1,155 @@
++import React from 'react'
++
++import { hashSeed } from '@/lib/personalized/images'
++
++// Our own stand-ins for a story picture, used when the source has none, has only furniture (share icons, logos),
++// only a thumbnail too small to stretch, or a picture that fails to load. Each one is a small piece of print
++// vocabulary (halftone, page columns, misregistered inks, press rules, engraving hatch, registration marks)
++// drawn from the site's palette variables, so light and dark mode need nothing extra.
++//
++// The pick comes from a hash of the story, never Math.random(): a story keeps its placeholder from render to
++// render, and server and client agree on it, so there is no flicker and no hydration mismatch.
++
++const COLOR = {
++  accent: 'var(--ep-accent)',
++  ink: 'var(--ep-ink)',
++  muted: 'var(--ep-muted)',
++  navy: 'var(--ep-navy)',
++  paper: 'var(--ep-paper-muted)',
++}
++
++const range = (count: number) => Array.from({ length: count }, (_, index) => index)
++
++// 300 x 200 canvas; every variant fills it, and `slice` crops it to whatever box the card gives.
++const Halftone = () => {
++  const cols = 16
++  const rows = 11
++  return (
++    <>
++      {range(rows).flatMap((row) =>
++        range(cols).map((col) => {
++          // Dots swell from the top-left toward the bottom-right, the way a screened photograph does.
++          const t = (col / (cols - 1)) * 0.65 + (row / (rows - 1)) * 0.35
++          return (
++            <circle
++              cx={18 + col * 18.5}
++              cy={16 + row * 17.2}
++              key={`${row}-${col}`}
++              r={0.8 + t * 7}
++              style={{ fill: COLOR.accent }}
++            />
++          )
++        }),
++      )}
++    </>
++  )
++}
++
++const PageColumns = () => {
++  const lengths = [72, 68, 72, 60, 72, 66, 72, 54, 38]
++  return (
++    <>
++      <rect height="13" style={{ fill: COLOR.ink }} width="170" x="24" y="26" />
++      <rect height="13" style={{ fill: COLOR.ink }} width="112" x="24" y="45" />
++      <rect height="42" style={{ fill: COLOR.navy }} width="56" x="220" y="26" />
++      <rect height="1.5" style={{ fill: COLOR.ink }} width="252" x="24" y="72" />
++      {range(3).flatMap((col) =>
++        lengths.map((length, line) => (
++          <rect
++            height="3.4"
++            key={`${col}-${line}`}
++            style={{ fill: COLOR.muted, opacity: 0.55 }}
++            width={line === lengths.length - 1 ? length * 0.6 : length}
++            x={24 + col * 90}
++            y={86 + line * 12}
++          />
++        )),
++      )}
++    </>
++  )
++}
++
++const Misregistered = () => (
++  <>
++    <circle cx="128" cy="102" r="64" style={{ fill: COLOR.navy, opacity: 0.78 }} />
++    <circle cx="172" cy="98" r="64" style={{ fill: COLOR.accent, opacity: 0.72 }} />
++    <rect height="2" style={{ fill: COLOR.ink }} width="252" x="24" y="176" />
++  </>
++)
++
++const PressRules = () => (
++  <>
++    {range(9).map((index) => (
++      <circle
++        cx="150"
++        cy="200"
++        fill="none"
++        key={index}
++        r={34 + index * 19}
++        strokeWidth="1.6"
++        style={{ stroke: COLOR.ink, opacity: 0.8 }}
++      />
++    ))}
++    <circle cx="150" cy="200" r="27" style={{ fill: COLOR.accent }} />
++  </>
++)
++
++const Hatch = () => (
++  <>
++    {range(56).map((index) => (
++      <line
++        key={index}
++        strokeWidth="1"
++        style={{ stroke: COLOR.ink, opacity: 0.26 }}
++        x1={index * 9}
++        x2={index * 9 - 200}
++        y1="0"
++        y2="200"
++      />
++    ))}
++    <rect height="104" style={{ fill: COLOR.navy }} width="126" x="62" y="48" />
++    <circle cx="204" cy="88" r="38" style={{ fill: COLOR.accent }} />
++  </>
++)
++
++const Registration = () => (
++  <>
++    <circle cx="150" cy="96" fill="none" r="52" strokeWidth="2" style={{ stroke: COLOR.ink }} />
++    <circle cx="150" cy="96" fill="none" r="18" strokeWidth="4" style={{ stroke: COLOR.accent }} />
++    <line strokeWidth="2" style={{ stroke: COLOR.ink }} x1="76" x2="224" y1="96" y2="96" />
++    <line strokeWidth="2" style={{ stroke: COLOR.ink }} x1="150" x2="150" y1="22" y2="170" />
++    {[COLOR.navy, COLOR.accent, COLOR.ink, COLOR.muted].map((fill, index) => (
++      <rect height="12" key={index} style={{ fill }} width="12" x={24 + index * 16} y="168" />
++    ))}
++    <path
++      d="M12 30V12h18M270 12h18v18M288 170v18h-18M30 188H12v-18"
++      fill="none"
++      strokeWidth="1.6"
++      style={{ stroke: COLOR.ink }}
++    />
++  </>
++)
++
++const VARIANTS = [Halftone, PageColumns, Misregistered, PressRules, Hatch, Registration]
++
++export const PLACEHOLDER_COUNT = VARIANTS.length
++
++export const placeholderIndex = (seed: string) => hashSeed(seed) % PLACEHOLDER_COUNT
++
++export function StoryPlaceholder({ className, seed }: { className?: string; seed: string }) {
++  const Variant = VARIANTS[placeholderIndex(seed)]
++
++  return (
++    <svg
++      aria-hidden="true"
++      className={className}
++      focusable="false"
++      preserveAspectRatio="xMidYMid slice"
++      viewBox="0 0 300 200"
++      xmlns="http://www.w3.org/2000/svg"
++    >
++      <rect height="200" style={{ fill: COLOR.paper }} width="300" />
++      <Variant />
++    </svg>
++  )
++}
+diff --git a/src/lib/personalized/embed.ts b/src/lib/personalized/embed.ts
+new file mode 100644
+index 0000000..ff4f5d2
+--- /dev/null
++++ b/src/lib/personalized/embed.ts
+@@ -0,0 +1,148 @@
++// Can this article be shown inside an <iframe> on our own pages?
++//
++// A browser decides that from the response headers of the framed page, and most large publishers say no
++// (`X-Frame-Options`, or CSP `frame-ancestors`). A blocked frame renders as a blank or "refused to connect"
++// box and the page can't detect it (there is no load or error event for it), so the answer has to come from
++// asking the publisher first. The embed is only offered when the answer isn't a clear "no".
++
++export type EmbedVerdict = 'allowed' | 'blocked' | 'unknown'
++
++type HeaderReader = { get: (name: string) => null | string }
++
++// Hostnames a server-side fetch must never be pointed at. Feed URLs are third-party input.
++const PRIVATE_HOST =
++  /^(?:localhost|.*\.local|.*\.internal|.*\.localdomain|metadata\.google\.internal)$/i
++const PRIVATE_IPV4 =
++  /^(?:0\.|10\.|127\.|169\.254\.|172\.(?:1[6-9]|2\d|3[01])\.|192\.168\.|100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.)/
++
++export const isPublicHttpUrl = (value: string): boolean => {
++  let url: URL
++  try {
++    url = new URL(value)
++  } catch {
++    return false
++  }
++  if (url.protocol !== 'https:' && url.protocol !== 'http:') return false
++
++  const host = url.hostname.replace(/^\[|\]$/g, '').toLowerCase()
++  if (!host || PRIVATE_HOST.test(host) || PRIVATE_IPV4.test(host)) return false
++  // IPv6 literals: loopback, unique-local, link-local. Public sites are not linked by IPv6 literal.
++  if (host.includes(':')) return false
++  return true
++}
++
++const hostMatches = (source: string, ownHost: string): boolean => {
++  const pattern = source.replace(/^https?:\/\//i, '').replace(/[:/].*$/, '')
++  if (pattern === ownHost) return true
++  if (pattern.startsWith('*.')) return ownHost.endsWith(pattern.slice(1))
++  return false
++}
++
++// One `frame-ancestors` source list, against our own origin.
++const ancestorsAllow = (sources: string[], ownOrigin: string): boolean => {
++  const ownHost = new URL(ownOrigin).hostname.toLowerCase()
++  const ownProtocol = new URL(ownOrigin).protocol
++
++  return sources.some((raw) => {
++    const source = raw.toLowerCase()
++    if (source === '*') return true
++    // A bare scheme source (`https:`) allows every host on that scheme.
++    if (source === ownProtocol) return true
++    if (source === "'none'" || source === "'self'") return false
++    return hostMatches(source, ownHost)
++  })
++}
++
++// Pure so the spec can feed it headers directly.
++export const evaluateFramingHeaders = (
++  headers: HeaderReader,
++  ownOrigin: string,
++): Exclude<EmbedVerdict, 'unknown'> => {
++  const frameOptions = (headers.get('x-frame-options') || '').toLowerCase()
++  // DENY and SAMEORIGIN both exclude us; ALLOW-FROM is obsolete and browsers ignore it, which for a modern
++  // browser means "no such permission".
++  if (/deny|sameorigin|allow-from/.test(frameOptions)) return 'blocked'
++
++  const csp = headers.get('content-security-policy') || ''
++  // A header can carry several comma-separated policies; every one that names frame-ancestors must let us in.
++  for (const policy of csp.split(',')) {
++    const directive = policy
++      .split(';')
++      .map((part) => part.trim())
++      .find((part) => /^frame-ancestors(\s|$)/i.test(part))
++    if (!directive) continue
++
++    const sources = directive.split(/\s+/).slice(1)
++    if (sources.length === 0 || !ancestorsAllow(sources, ownOrigin)) return 'blocked'
++  }
++
++  return 'allowed'
++}
++
++const PROBE_TIMEOUT_MS = 3500
++const CACHE_TTL_MS = 6 * 60 * 60 * 1000
++const CACHE_MAX_ENTRIES = 500
++
++// Framing policy is set per site, not per story, so one answer per origin is reused for a few hours. This
++// lives in the server instance's memory: a cold instance just asks again.
++const cache = new Map<string, { expires: number; verdict: EmbedVerdict }>()
++
++export const clearEmbedCache = () => cache.clear()
++
++export const probeEmbeddable = async (
++  articleUrl: string,
++  {
++    fetchImpl = fetch,
++    now = Date.now(),
++    ownOrigin,
++    timeoutMs = PROBE_TIMEOUT_MS,
++  }: {
++    fetchImpl?: typeof fetch
++    now?: number
++    ownOrigin: string
++    timeoutMs?: number
++  },
++): Promise<EmbedVerdict> => {
++  if (!isPublicHttpUrl(articleUrl)) return 'blocked'
++  // An http page inside our https page is blocked by the browser as mixed content.
++  if (!articleUrl.toLowerCase().startsWith('https://')) return 'blocked'
++
++  const origin = new URL(articleUrl).origin
++  const cached = cache.get(origin)
++  if (cached && cached.expires > now) return cached.verdict
++
++  let verdict: EmbedVerdict = 'unknown'
++  try {
++    const response = await fetchImpl(articleUrl, {
++      cache: 'no-store',
++      headers: {
++        Accept: 'text/html,application/xhtml+xml',
++        'User-Agent': 'Mozilla/5.0 (compatible; PanfletoReader/1.0; +https://panfleto.win)',
++      },
++      redirect: 'follow',
++      signal: AbortSignal.timeout(timeoutMs),
++    })
++    // We only wanted the headers.
++    await response.body?.cancel().catch(() => undefined)
++
++    if (response.url && !response.url.toLowerCase().startsWith('https://')) {
++      verdict = 'blocked'
++    } else if (!response.ok) {
++      // A 403 from a bot wall answers with the wall's own headers (Cloudflare's carry SAMEORIGIN), which say
++      // nothing about what the reader's browser would get. Don't guess from them.
++      verdict = 'unknown'
++    } else {
++      verdict = evaluateFramingHeaders(response.headers, ownOrigin)
++    }
++  } catch {
++    verdict = 'unknown'
++  }
++
++  // Failures aren't remembered: the next view gets to try again.
++  if (verdict !== 'unknown') {
++    if (cache.size >= CACHE_MAX_ENTRIES) cache.clear()
++    cache.set(origin, { expires: now + CACHE_TTL_MS, verdict })
++  }
++
++  return verdict
++}
+diff --git a/src/lib/personalized/images.ts b/src/lib/personalized/images.ts
+new file mode 100644
+index 0000000..4680b61
+--- /dev/null
++++ b/src/lib/personalized/images.ts
+@@ -0,0 +1,153 @@
++// Pure image helpers for the personalized edition. No imports on purpose: the reader pipeline (server) and
++// the card components (client) both use them, and the specs load them without Next or Payload.
++//
++// Feeds and scraped pages hand us all kinds of "images": share-button icons, site logos, avatars, tracking
++// pixels, thumbnails a few dozen pixels wide. None of them belong on a story card or in an article body, so
++// the rule here is: an image is only used when we have no reason to think it is furniture.
++
++// Below this many natural pixels wide, an image looks blurry once a card stretches it.
++export const MIN_CARD_IMAGE_WIDTH = 240
++// Below this on either edge, an image inside an article is an icon or a tracking pixel, not an illustration.
++export const MIN_BODY_IMAGE_EDGE = 48
++// A size written in the URL itself (…-150x150.jpg, ?w=96) under this is a thumbnail, whatever the page says.
++const MIN_URL_HINT_EDGE = 160
++
++// Words that mean "this is site furniture" wherever they appear in the path.
++const FURNITURE_WORDS = new Set(
++  (
++    'logo logos icon icons sprite sprites avatar avatars favicon badge badges spacer pixel tracking ' +
++    'tracker beacon emoji smiley gravatar'
++  ).split(' '),
++)
++
++// Platform and share words are furniture when the file is named for them (facebook.png, fb-share-icon.png),
++// but a photo can legitimately be called "facebook-hearing-senate.jpg", so they only count in short names.
++const PLATFORM_WORDS = new Set(
++  (
++    'facebook fb twitter tweet linkedin whatsapp pinterest reddit telegram messenger instagram tiktok ' +
++    'mastodon bluesky flipboard share sharing social follow'
++  ).split(' '),
++)
++const SHORT_FILENAME_TOKENS = 4
++
++// Hosts that only ever serve tracking or UI assets.
++const FURNITURE_HOST =
++  /(?:^|\.)(?:doubleclick\.net|googletagmanager\.com|google-analytics\.com|scorecardresearch\.com|quantserve\.com|adsrvr\.org|facebook\.com|facebook\.net|static\.xx\.fbcdn\.net|abs\.twimg\.com|platform\.twitter\.com|gravatar\.com|feedburner\.com|feedsportal\.com)$/i
++
++// Photographs are never these; logos and icons very often are.
++const FURNITURE_EXTENSION = /\.(?:svg|ico|cur)$/i
++
++const tokens = (value: string) =>
++  value
++    .toLowerCase()
++    .split(/[^a-z0-9]+/)
++    .filter(Boolean)
++
++const safeDecode = (value: string) => {
++  try {
++    return decodeURIComponent(value)
++  } catch {
++    return value
++  }
++}
++
++// The edge length a URL claims for itself, if it says so: WordPress `-150x150.jpg`, a `?w=96` / `?width=96`
++// resize parameter. Undefined when the URL says nothing.
++export const imageSizeHint = (url: string): number | undefined => {
++  let parsed: URL
++  try {
++    parsed = new URL(url)
++  } catch {
++    return undefined
++  }
++
++  const hints: number[] = []
++
++  const wordpress = parsed.pathname.match(/-(\d{2,4})x(\d{2,4})\.[a-z]{3,4}$/i)
++  if (wordpress) hints.push(Math.max(Number(wordpress[1]), Number(wordpress[2])))
++
++  for (const key of ['w', 'width']) {
++    const value = Number(parsed.searchParams.get(key))
++    if (Number.isFinite(value) && value > 0) hints.push(value)
++  }
++
++  return hints.length > 0 ? Math.max(...hints) : undefined
++}
++
++export const isUsableImageUrl = (url?: string | null): url is string => {
++  if (!url || !/^https?:\/\//i.test(url)) return false
++
++  let parsed: URL
++  try {
++    parsed = new URL(url)
++  } catch {
++    return false
++  }
++
++  if (FURNITURE_HOST.test(parsed.hostname)) return false
++
++  const path = safeDecode(parsed.pathname)
++  if (FURNITURE_EXTENSION.test(path)) return false
++  if (/(?:^|[^0-9])1x1(?:[^0-9]|$)/i.test(path)) return false
++
++  const segments = path.split('/').filter(Boolean)
++  if (segments.some((segment) => tokens(segment).some((word) => FURNITURE_WORDS.has(word)))) {
++    return false
++  }
++
++  const filename = tokens((segments.at(-1) || '').replace(/\.[a-z0-9]{2,5}$/i, ''))
++  if (
++    filename.length <= SHORT_FILENAME_TOKENS &&
++    filename.some((word) => PLATFORM_WORDS.has(word))
++  ) {
++    return false
++  }
++
++  const hint = imageSizeHint(url)
++  if (hint !== undefined && hint < MIN_URL_HINT_EDGE) return false
++
++  return true
++}
++
++type SrcsetCandidate = { descriptor: number; url: string }
++
++// A srcset lists the same picture at several sizes, usually smallest first. Taking the first entry (as this
++// used to) hands cards the thumbnail; take the widest instead, but not a 3000px original for a card:
++// `maxDescriptor` caps it, falling back to the smallest entry above the cap when nothing fits under it.
++export const bestHttpFromSrcset = (
++  srcset: string,
++  { maxDescriptor = Infinity }: { maxDescriptor?: number } = {},
++): string | undefined => {
++  const candidates: SrcsetCandidate[] = []
++
++  // Comma + whitespace is the separator; a comma inside a URL (`w_300,h_200`) is not.
++  for (const part of srcset.split(/,\s+/)) {
++    const [url, descriptor] = part.trim().split(/\s+/)
++    if (!url || !/^https?:\/\//i.test(url)) continue
++    const value = descriptor ? parseFloat(descriptor) : 1
++    // `2x` descriptors and `800w` descriptors are not comparable, but a srcset never mixes them.
++    candidates.push({ descriptor: Number.isFinite(value) ? value : 1, url })
++  }
++
++  if (candidates.length === 0) return undefined
++
++  const fitting = candidates.filter((candidate) => candidate.descriptor <= maxDescriptor)
++  if (fitting.length > 0) {
++    return fitting.reduce((best, next) => (next.descriptor > best.descriptor ? next : best)).url
++  }
++  return candidates.reduce((best, next) => (next.descriptor < best.descriptor ? next : best)).url
++}
++
++// Kept for callers that only want "any http URL from this srcset".
++export const firstHttpFromSrcset = bestHttpFromSrcset
++
++// A small, stable number for a string. Placeholders are picked from it, so a story keeps the same
++// placeholder on every render (a random pick per render would flicker and break hydration).
++export const hashSeed = (seed: string): number => {
++  let hash = 2166136261
++  for (let index = 0; index < seed.length; index++) {
++    hash ^= seed.charCodeAt(index)
++    hash = Math.imul(hash, 16777619)
++  }
++  return hash >>> 0
++}
+diff --git a/src/lib/personalized/reader.ts b/src/lib/personalized/reader.ts
+index 4d5a4fb..51d613a 100644
+--- a/src/lib/personalized/reader.ts
++++ b/src/lib/personalized/reader.ts
+@@ -1,7 +1,9 @@
+ import { type MinifluxEntry, MinifluxRequestError, minifluxFetchAs } from '../miniflux/client'
+ import { extractCitedArticleUrl, isAggregatorUrl } from './aggregator'
+ import {
++  enhanceReaderImages,
+   extractLeadImage,
++  fetchOpenGraphImage,
+   fetchOriginalArticleHtml,
+   injectLeadImage,
+   normalizeLayoutAttributes,
+@@ -132,6 +134,9 @@ export type ReaderArticle = {
+   feedTitle: string
+   id: number
+   isThin: boolean
++  // The best picture we could find for the story: the feed's own, else the publisher's og:image. Undefined when
++  // every candidate was furniture (a share icon, a logo), so callers show a placeholder instead.
++  leadImageUrl?: string
+   permalinkUrl?: string
+   publishedAt: string
+   readingTime: number
+@@ -150,6 +155,16 @@ export const isThinContent = (content?: string): boolean => {
+   return stripTags(content).length < THIN_CONTENT_THRESHOLD
+ }
+ 
++// What the reader will actually see once share buttons, paywall notices and lists of links are gone. A body
++// that is 3,000 characters of "More on this story" links is thin, however long it is before cleaning.
++const cleanedTextLength = (content: string, dropLinkFarms = false): number =>
++  stripTags(stripReaderChrome(promoteLazyImages(content), { dropLinkFarms })).length
++
++export const isThinAfterCleaning = (content?: string, dropLinkFarms = false): boolean => {
++  if (!content) return true
++  return cleanedTextLength(content, dropLinkFarms) < THIN_CONTENT_THRESHOLD
++}
++
+ // Strip layout-only attributes that make scraped HTML wider than the viewport.
+ // Miniflux already sanitizes XSS; this is so width/nowrap/style cannot size the column.
+ export const normalizeReaderContent = (
+@@ -192,7 +207,8 @@ export const fetchReaderArticle = async (
+     }
+   }
+ 
+-  let isThin = isThinContent(content)
++  const dropLinkFarms = aggregator && !usedOriginal
++  let isThin = isThinAfterCleaning(content, dropLinkFarms)
+ 
+   // If thin or explicitly requested, trigger Miniflux's autofetch + unwall fallback pipeline.
+   // Aggregator homepages are skipped: fetch-content would scrape Techmeme, not the cited story.
+@@ -204,14 +220,14 @@ export const fetchReaderArticle = async (
+         { timeoutMs },
+       )
+       if (scraped?.content) {
+-        if (!isThinContent(scraped.content)) {
++        if (!isThinAfterCleaning(scraped.content)) {
+           content = scraped.content
+           if (scraped.reading_time) readingTime = scraped.reading_time
+           isThin = false
+-        } else if (scraped.content.length > content.length) {
++        } else if (cleanedTextLength(scraped.content) > cleanedTextLength(content, dropLinkFarms)) {
+           content = scraped.content
+           if (scraped.reading_time) readingTime = scraped.reading_time
+-          isThin = isThinContent(content)
++          isThin = isThinAfterCleaning(content)
+         }
+       }
+     } catch (error) {
+@@ -221,24 +237,34 @@ export const fetchReaderArticle = async (
+     }
+   }
+ 
+-  isThin = isThinContent(content)
++  isThin = isThinAfterCleaning(content, dropLinkFarms)
+   const estimatedReadingTime =
+-    readingTime || Math.max(1, Math.round(stripTags(content).length / 1000))
++    readingTime || Math.max(1, Math.round(cleanedTextLength(content, dropLinkFarms) / 1000))
+   const sourceUrl = citedUrl || entry.url
+-  const leadImageUrl = extractLeadImage(content, entry.enclosures)
++  let leadImageUrl = extractLeadImage(content, entry.enclosures)
++
++  // The feed gave us no picture worth using (none, or only share icons and logos). When there is also no body
++  // to look at, ask the publisher which picture it uses for the story. Only in this branch: a full article
++  // without a hero reads fine, and this costs a request to the source.
++  if (!leadImageUrl && isThin) {
++    leadImageUrl = await fetchOpenGraphImage(sourceUrl, Math.min(timeoutMs, 5000))
++  }
+ 
+   return {
+     author: entry.author || undefined,
+     categoryTitle: entry.feed?.category?.title || entry.category?.title || 'Sin categoría',
+     commentsUrl: entry.comments_url || undefined,
+-    content: normalizeReaderContent(content, {
+-      dropLinkFarms: aggregator && !usedOriginal,
+-      leadImageUrl,
+-    }),
++    content: enhanceReaderImages(
++      normalizeReaderContent(content, {
++        dropLinkFarms,
++        leadImageUrl,
++      }),
++    ),
+     feedSiteUrl,
+     feedTitle: entry.feed?.title || '',
+     id: entry.id,
+     isThin,
++    leadImageUrl,
+     permalinkUrl: citedUrl ? entry.url : undefined,
+     publishedAt: entry.published_at || new Date().toISOString(),
+     readingTime: estimatedReadingTime,
+diff --git a/src/lib/personalized/readerHtml.ts b/src/lib/personalized/readerHtml.ts
+index 5a66935..b62c93a 100644
+--- a/src/lib/personalized/readerHtml.ts
++++ b/src/lib/personalized/readerHtml.ts
+@@ -1,87 +1,265 @@
++import {
++  bestHttpFromSrcset,
++  firstHttpFromSrcset,
++  isUsableImageUrl,
++  MIN_BODY_IMAGE_EDGE,
++} from './images'
++
++export { firstHttpFromSrcset }
++
++// Turning scraped or feed HTML into something worth reading. Everything here is string-in, string-out so the
++// specs can run it without a network; Miniflux has already sanitized the HTML for XSS, this is about noise.
++
++// --- text helpers -------------------------------------------------------------------------------------------
++
+ const ATTR_QUOTED = `"[^"]*"|'[^']*'`
++const MEDIA = /<(?:img|picture|video|iframe)\b/i
++
++const stripTags = (html: string): string => html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+ 
+-const CHROME_TEXT = (text: string) => {
+-  const t = text.replace(/\s+/g, ' ').trim()
+-  if (!t) return false
+-  if (t.length > 280 && !/^you have a preview view of this article/i.test(t)) return false
+-  if (/^advertisement$/i.test(t)) return true
+-  if (/^skip advertisement$/i.test(t)) return true
+-  if (/^share full article$/i.test(t)) return true
+-  if (/^share$/i.test(t)) return true
+-  if (/^live updates$/i.test(t)) return true
+-  if (/^listen(\s*[·•.\-–—]\s*|\s+)\d+/i.test(t)) return true
+-  if (/^you have a preview view of this article/i.test(t)) return true
+-  if (/^(facebook|twitter|x|linkedin|whatsapp|email|reddit)$/i.test(t)) return true
+-  return false
++const decodeBasic = (value: string) =>
++  value
++    .replace(/&nbsp;|&#160;|&#xa0;/gi, ' ')
++    .replace(/&amp;/gi, '&')
++    .replace(/&quot;|&#34;/gi, '"')
++    .replace(/&#39;|&apos;|&rsquo;|&lsquo;/gi, "'")
++
++const normalizeText = (html: string) =>
++  decodeBasic(stripTags(html))
++    .replace(/[\u200b\u00a0]/g, ' ')
++    .replace(/\s+/g, ' ')
++    .trim()
++
++const attrOf = (tag: string, name: string): string | undefined => {
++  const match = tag.match(new RegExp(`\\b${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`, 'i'))
++  return match ? (match[1] ?? match[2]) : undefined
+ }
+ 
+-const stripTags = (html: string): string => html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
++// --- what counts as "not the article" -------------------------------------------------------------------------
++
++// Whole-element matches: an element whose entire text is one of these is chrome.
++const EXACT_CHROME: RegExp[] = [
++  /^advertisement$/i,
++  /^skip advertisement$/i,
++  /^share full article$/i,
++  /^share( this (article|story))?$/i,
++  /^live updates$/i,
++  /^listen(\s*[·•.\-–—]\s*|\s+)\d+/i,
++  /^(facebook|twitter|x|linkedin|whatsapp|email|reddit|pinterest|telegram|messenger|bluesky|flipboard)$/i,
++  /^(copy link|print|save|comments?|copiar enlace|imprimir|guardar|compartir|comentarios)$/i,
++  /^(share|tweet|post|compartir)( (on|en|via))? (facebook|twitter|x|linkedin|whatsapp|email|reddit|pinterest|telegram|messenger|bluesky)$/i,
++  /^supported by$/i,
++  /^continue reading the main story$/i,
++  /^skip to (main )?content$/i,
++  /^(subscribe|log in|sign in|sign up|suscríbete|iniciar sesión|inicia sesión)$/i,
++]
++
++// Phrases a paywall or subscription wall injects. An element made of nothing but these (in any number, in
++// any order, run together or not) is chrome. That is how the NYT block arrives: five or six sentences, in two
++// languages, repeated, with no separators once the tags are gone.
++const BOILERPLATE: RegExp[] = [
++  /see more of our coverage in your search results\.?/gi,
++  /encuentra más de nuestra cobertura en los resultados de búsqueda\.?/gi,
++  /add the new york times on google/gi,
++  /agrega the new york times en google/gi,
++  /thank you for your patience while we verify access\.?/gi,
++  /if you are in reader mode please exit and log into your times account,? or subscribe for all of the times\.?/gi,
++  /already a subscriber\??\s*log in\.?/gi,
++  /want all of the times\??\s*subscribe\.?/gi,
++  /we are having trouble retrieving the article content\.?/gi,
++  /please enable javascript in your browser settings and refresh the page to continue reading\.?/gi,
++  /skip advertisement/gi,
++  /advertisement/gi,
++  /related content/gi,
++  /supported by/gi,
++]
++
++// The distinctive ones also get removed from inside a longer text node, in case the wall's sentence sits in
++// the same paragraph as real text. The short generic ones ("Related content") never do.
++const INLINE_BOILERPLATE: RegExp[] = BOILERPLATE.slice(0, 9)
++
++const PREVIEW_NOTICE = /^you have a preview view of this article/i
++const PUNCTUATION_ONLY = /[\s.,;:!?·•|()\-–—]+/g
++
++const isBoilerplateOnly = (text: string) => {
++  if (text.length > 2000) return false
++  let rest = text
++  for (const phrase of BOILERPLATE) rest = rest.replace(phrase, ' ')
++  return rest !== text && rest.replace(PUNCTUATION_ONLY, '') === ''
++}
++
++export const isChromeText = (raw: string): boolean => {
++  const text = raw.replace(/\s+/g, ' ').trim()
++  if (!text) return false
++  if (PREVIEW_NOTICE.test(text)) return true
++  if (text.length <= 280 && EXACT_CHROME.some((pattern) => pattern.test(text))) return true
++  return isBoilerplateOnly(text)
++}
+ 
+-export const firstHttpFromSrcset = (srcset: string): string | undefined => {
+-  for (const candidate of srcset.split(',')) {
+-    const url = candidate.trim().split(/\s+/)[0]
+-    if (/^https?:\/\//i.test(url)) return url
++// Headings that introduce a block of other stories, not part of this one.
++const RELATED_HEADING =
++  /^(related( (content|articles?|stories|topics|coverage|links|reading|video))?|more (on this story|on this|from [\w .&'’-]{2,40}|stories|news|to read|about this)|top stories|read more|also read|you (might|may) also like|recommended( for you| reading)?|more coverage|see also|around the web|from around the web|most (read|popular|viewed)|trending|sponsored( content)?|más (sobre este tema|noticias|historias|leídas|en [\w .&'’-]{2,30})|te (puede|podría) interesar|temas relacionados|noticias relacionadas|artículos relacionados|contenido relacionado|lee (también|más)|leer más|sigue leyendo|lo más (leído|visto)|contenido patrocinado)$/i
++
++// --- depth-aware element removal ------------------------------------------------------------------------------
++//
++// The old approach matched `<div>…</div>` non-greedily, which for nested divs ends at the FIRST `</div>` and
++// leaves the tree unbalanced. These helpers count nesting, so removing an element removes exactly that element.
++
++type Removal = 'keep' | 'remove' | 'remove-with-next-block'
++
++const findClose = (html: string, tag: string, from: number) => {
++  const re = new RegExp(`<(/?)${tag}(?=[\\s>/])[^>]*>`, 'gi')
++  re.lastIndex = from
++  let depth = 1
++  let match: RegExpExecArray | null
++  while ((match = re.exec(html)) !== null) {
++    if (match[1]) {
++      depth--
++      if (depth === 0) return { closeStart: match.index, end: match.index + match[0].length }
++    } else if (!match[0].endsWith('/>')) {
++      depth++
++    }
+   }
+   return undefined
+ }
+ 
++// A list, div, section or aside right after `position` (a heading's end) belongs to that heading.
++const extendOverNextBlock = (html: string, position: number) => {
++  const next = html.slice(position).match(/^\s*<(ul|ol|div|section|aside)\b[^>]*>/i)
++  if (!next) return position
++  const close = findClose(html, next[1].toLowerCase(), position + next[0].length)
++  return close ? close.end : position
++}
++
++const removeElements = (html: string, tag: string, decide: (inner: string) => Removal): string => {
++  const open = new RegExp(`<${tag}(?=[\\s>/])[^>]*>`, 'gi')
++  let out = ''
++  let cursor = 0
++  let removed = false
++  let match: RegExpExecArray | null
++
++  while ((match = open.exec(html)) !== null) {
++    if (match[0].endsWith('/>')) continue
++    const start = match.index
++    const openEnd = start + match[0].length
++    const close = findClose(html, tag, openEnd)
++    if (!close) continue
++
++    const verdict = decide(html.slice(openEnd, close.closeStart))
++    if (verdict === 'keep') continue
++
++    const end = verdict === 'remove-with-next-block' ? extendOverNextBlock(html, close.end) : close.end
++    out += html.slice(cursor, start)
++    cursor = end
++    removed = true
++    open.lastIndex = end
++  }
++
++  return removed ? out + html.slice(cursor) : html
++}
++
++const chromeDecision = (inner: string): Removal => {
++  if (inner.length > 6000 || MEDIA.test(inner)) return 'keep'
++  return isChromeText(normalizeText(inner)) ? 'remove' : 'keep'
++}
++
++const relatedDecision = (inner: string): Removal => {
++  if (inner.length > 400 || MEDIA.test(inner)) return 'keep'
++  const text = normalizeText(inner).replace(/[:：]$/, '')
++  return text.length > 0 && text.length <= 60 && RELATED_HEADING.test(text)
++    ? 'remove-with-next-block'
++    : 'keep'
++}
++
++// --- link farms -----------------------------------------------------------------------------------------------
++
++const linkStats = (inner: string) => {
++  let anchors = 0
++  let linkChars = 0
++  inner.replace(/<a\b[^>]*>([\s\S]*?)<\/a>/gi, (_match, body: string) => {
++    anchors++
++    linkChars += stripTags(body).length
++    return ''
++  })
++  return { anchors, linkChars, total: stripTags(inner).length }
++}
++
++// A list where nearly every item is a link and nearly all of its text is link text: "More on this story",
++// "Top stories", a footer of section links. A list in an article body has prose in it.
++const listDecision = (inner: string): Removal => {
++  if (inner.length > 20000) return 'keep'
++  const items = (inner.match(/<li\b/gi) || []).length
++  if (items < 3) return 'keep'
++  const { anchors, linkChars, total } = linkStats(inner)
++  return total > 0 && anchors >= items * 0.8 && linkChars / total >= 0.7 ? 'remove' : 'keep'
++}
++
++// The same idea for a wrapper that is mostly links without being a list (a tag cloud, a row of teasers).
++const blockDecision = (inner: string): Removal => {
++  if (inner.length > 20000) return 'keep'
++  const { anchors, linkChars, total } = linkStats(inner)
++  return anchors >= 4 && total > 0 && total <= 3000 && linkChars / total >= 0.8 ? 'remove' : 'keep'
++}
++
++// Four or more paragraphs in a row that are each nothing but one link.
++const LINK_PARAGRAPH_RUN = /(?:\s*<p\b[^>]*>\s*<a\b[^>]*>[^<]{4,200}<\/a>\s*<\/p>){4,}/gi
++
++const dropDenseLinkBlocks = (html: string): string => {
++  let out = html
++  for (const tag of ['ul', 'ol']) out = removeElements(out, tag, listDecision)
++  for (const tag of ['div', 'section', 'aside']) out = removeElements(out, tag, blockDecision)
++  return out.replace(LINK_PARAGRAPH_RUN, '')
++}
++
++// --- images ---------------------------------------------------------------------------------------------------
++
++const CARD_SRCSET_CAP = 1280
++
++// Every place an <img> can keep its real address, best first. The first one that is not furniture wins, so a
++// 1x1 pixel in `src` does not hide the real picture in `data-src`.
++const imageSourceCandidates = (tag: string): string[] => {
++  const src = attrOf(tag, 'src')?.trim()
++  const lazy = attrOf(tag, 'data-src') || attrOf(tag, 'data-lazy-src') || attrOf(tag, 'data-original')
++  const srcset = attrOf(tag, 'srcset') || attrOf(tag, 'data-srcset')
++  const fromSrcset = srcset ? bestHttpFromSrcset(srcset, { maxDescriptor: CARD_SRCSET_CAP }) : undefined
++
++  return [fromSrcset, lazy?.trim(), src].filter(
++    (candidate): candidate is string => Boolean(candidate) && /^https?:\/\//i.test(candidate!),
++  )
++}
++
++const declaredEdge = (tag: string, name: 'width' | 'height') => {
++  const value = Number(attrOf(tag, name))
++  return Number.isFinite(value) && value > 0 ? value : undefined
++}
++
++const isDeclaredTiny = (tag: string) => {
++  const width = declaredEdge(tag, 'width')
++  const height = declaredEdge(tag, 'height')
++  return (
++    (width !== undefined && width <= MIN_BODY_IMAGE_EDGE) ||
++    (height !== undefined && height <= MIN_BODY_IMAGE_EDGE)
++  )
++}
++
+ export const extractLeadImage = (
+   content?: string,
+   enclosures?: Array<{ mime_type?: string; url?: string }>,
+ ): string | undefined => {
+-  if (enclosures && enclosures.length > 0) {
+-    for (const enc of enclosures) {
+-      if (!enc.url) continue
+-      const mime = (enc.mime_type || '').toLowerCase()
+-      const url = enc.url.toLowerCase()
+-      if (
+-        mime.startsWith('image/') ||
+-        url.endsWith('.jpg') ||
+-        url.endsWith('.jpeg') ||
+-        url.endsWith('.png') ||
+-        url.endsWith('.webp') ||
+-        url.endsWith('.avif') ||
+-        url.endsWith('.gif')
+-      ) {
+-        return enc.url
+-      }
+-    }
++  for (const enclosure of enclosures || []) {
++    if (!enclosure.url || !isUsableImageUrl(enclosure.url)) continue
++    const mime = (enclosure.mime_type || '').toLowerCase()
++    const extension = /\.(?:jpe?g|png|webp|avif|gif)(?:[?#].*)?$/i.test(enclosure.url)
++    if (mime.startsWith('image/') || extension) return enclosure.url
+   }
+ 
+-  if (content) {
+-    const imgRegex = /<img\b[^>]*>/gi
+-    let match: RegExpExecArray | null
+-    while ((match = imgRegex.exec(content)) !== null) {
+-      const tagStr = match[0]
+-      const src =
+-        tagStr.match(/\bsrc=["']([^"']+)["']/i)?.[1]?.trim() ||
+-        tagStr.match(/\b(?:data-src|data-lazy-src|data-original)\s*=\s*["']([^"']+)["']/i)?.[1]?.trim() ||
+-        firstHttpFromSrcset(tagStr.match(/\bsrcset\s*=\s*["']([^"']+)["']/i)?.[1] || '')
+-
+-      if (!src || (!src.startsWith('http://') && !src.startsWith('https://'))) continue
+-
+-      const lower = src.toLowerCase()
+-      if (
+-        lower.includes('1x1') ||
+-        lower.includes('pixel') ||
+-        lower.includes('tracking') ||
+-        lower.includes('feedsportal') ||
+-        lower.includes('feedburner') ||
+-        lower.includes('gravatar.com') ||
+-        lower.includes('badge') ||
+-        lower.includes('share-button')
+-      ) {
+-        continue
+-      }
+-
+-      const lowerTag = tagStr.toLowerCase()
+-      const widthMatch = lowerTag.match(/width=["']?(\d+)["']?/)
+-      const heightMatch = lowerTag.match(/height=["']?(\d+)["']?/)
+-      if (widthMatch && parseInt(widthMatch[1], 10) <= 2) continue
+-      if (heightMatch && parseInt(heightMatch[1], 10) <= 2) continue
+-
+-      return src
+-    }
++  if (!content) return undefined
++
++  const images = content.match(/<img\b[^>]*>/gi) || []
++  for (const tag of images) {
++    if (isDeclaredTiny(tag)) continue
++    const usable = imageSourceCandidates(tag).find((candidate) => isUsableImageUrl(candidate))
++    if (usable) return usable
+   }
+ 
+   return undefined
+@@ -103,11 +281,13 @@ export const promoteLazyImages = (html: string): string => {
+ 
+     if (existingIsHttp && !looksLikePixel) return full
+ 
+-    const lazy =
+-      attrs.match(/\b(?:data-src|data-lazy-src|data-original|data-image)\s*=\s*["']([^"']+)["']/i)?.[1]
++    const lazy = attrs.match(
++      /\b(?:data-src|data-lazy-src|data-original|data-image)\s*=\s*["']([^"']+)["']/i,
++    )?.[1]
+     const srcset = attrs.match(/\bsrcset\s*=\s*["']([^"']+)["']/i)?.[1]
+-    const promoted = (lazy && /^https?:\/\//i.test(lazy.trim()) ? lazy.trim() : undefined) ||
+-      (srcset ? firstHttpFromSrcset(srcset) : undefined)
++    const promoted =
++      (lazy && /^https?:\/\//i.test(lazy.trim()) ? lazy.trim() : undefined) ||
++      (srcset ? bestHttpFromSrcset(srcset, { maxDescriptor: CARD_SRCSET_CAP }) : undefined)
+ 
+     if (!promoted) return full
+ 
+@@ -119,14 +299,74 @@ export const promoteLazyImages = (html: string): string => {
+   })
+ }
+ 
+-const removeMatchingTag = (html: string, tag: string): string => {
+-  const re = new RegExp(`<${tag}\\b[^>]*>([\\s\\S]*?)</${tag}>`, 'gi')
+-  return html.replace(re, (full, inner: string) => {
+-    const text = stripTags(inner)
+-    return CHROME_TEXT(text) ? '' : full
++// Share icons, logos, avatars, tracking pixels and lazy-load placeholders are not part of a story.
++export const removeJunkImages = (html: string): string =>
++  html.replace(/<img\b[^>]*>/gi, (tag) => {
++    if (isDeclaredTiny(tag)) return ''
++
++    const src = attrOf(tag, 'src')?.trim()
++    if (!src) return tag
++    if (/^https?:\/\//i.test(src)) return isUsableImageUrl(src) ? tag : ''
++    // A tiny inline `data:` image is a lazy-loading placeholder that never got swapped.
++    if (/^data:/i.test(src) && src.length < 400) return ''
++    return tag
++  })
++
++// Lazy loading and no-referrer for the body's images: below-the-fold pictures wait, and publishers that
++// refuse hotlinks with a foreign Referer serve them anyway. The first image stays eager (it is the hero).
++export const enhanceReaderImages = (html: string): string => {
++  let first = true
++  return html.replace(/<img\b([^>]*?)(\/?)>/gi, (full, attrs: string, slash: string) => {
++    let extra = ''
++    if (!/\bdecoding\s*=/i.test(attrs)) extra += ' decoding="async"'
++    if (!/\breferrerpolicy\s*=/i.test(attrs)) extra += ' referrerpolicy="no-referrer"'
++    if (!first && !/\bloading\s*=/i.test(attrs)) extra += ' loading="lazy"'
++    first = false
++    return extra ? `<img${attrs}${extra}${slash}>` : full
+   })
+ }
+ 
++// --- the cleaning pass ----------------------------------------------------------------------------------------
++
++const CHROME_TAGS = [
++  'aside',
++  'section',
++  'div',
++  'p',
++  'span',
++  'a',
++  'button',
++  'li',
++  'h2',
++  'h3',
++  'h4',
++  'em',
++  'strong',
++]
++
++const RELATED_TAGS = ['h2', 'h3', 'h4', 'h5', 'h6', 'p', 'div']
++
++// Elements the passes above emptied out (a share `<li>` whose link was removed, an `<a>` around a removed logo).
++const EMPTY_ELEMENT =
++  /<(a|p|span|div|li|ul|ol|section|aside|figure|figcaption|h[2-6]|em|strong|b|i|button)\b[^>]*>(?:\s|&nbsp;|<br\s*\/?>)*<\/\1>/gi
++
++const removeEmptyElements = (html: string): string => {
++  let out = html
++  for (let pass = 0; pass < 6; pass++) {
++    const next = out.replace(EMPTY_ELEMENT, '')
++    if (next === out) break
++    out = next
++  }
++  return out
++}
++
++const scrubInlineBoilerplate = (html: string): string =>
++  html.replace(/>([^<>]+)</g, (match, text: string) => {
++    let cleaned = text
++    for (const phrase of INLINE_BOILERPLATE) cleaned = cleaned.replace(phrase, '')
++    return cleaned === text ? match : `>${cleaned}<`
++  })
++
+ export const stripReaderChrome = (
+   html: string,
+   { dropLinkFarms = false }: { dropLinkFarms?: boolean } = {},
+@@ -137,11 +377,18 @@ export const stripReaderChrome = (
+     .replace(/<nav\b[^>]*>[\s\S]*?<\/nav>/gi, '')
+     .replace(/<audio\b[^>]*>[\s\S]*?<\/audio>/gi, '')
+     .replace(/<audio\b[^>]*\/?>/gi, '')
++    // Inline SVG in scraped pages is share-button and UI iconography.
++    .replace(/<svg\b[\s\S]*?<\/svg>/gi, '')
+ 
+-  for (const tag of ['aside', 'section', 'div', 'p', 'span', 'a', 'button', 'li', 'h2', 'h3', 'h4', 'em', 'strong']) {
+-    out = removeMatchingTag(out, tag)
+-  }
++  out = removeJunkImages(out)
+ 
++  // Related-story headings go first, so "Related content" takes its list of links with it instead of being
++  // caught later as a lone piece of chrome and leaving the list behind.
++  for (const tag of RELATED_TAGS) out = removeElements(out, tag, relatedDecision)
++
++  for (const tag of CHROME_TAGS) out = removeElements(out, tag, chromeDecision)
++
++  out = scrubInlineBoilerplate(out)
+   out = out.replace(/you have a preview view of this article[\s\S]{0,400}?will load\.?/gi, '')
+ 
+   if (dropLinkFarms) {
+@@ -150,8 +397,9 @@ export const stripReaderChrome = (
+       '',
+     )
+   }
++  out = dropDenseLinkBlocks(out)
+ 
+-  return out.replace(/\n{3,}/g, '\n\n')
++  return removeEmptyElements(out).replace(/\n{3,}/g, '\n\n')
+ }
+ 
+ export const injectLeadImage = (html: string, imageUrl?: string): string => {
+@@ -161,6 +409,8 @@ export const injectLeadImage = (html: string, imageUrl?: string): string => {
+   return `<figure class="article-reader-hero"><img alt="" src="${safe}"></figure>${html}`
+ }
+ 
++// --- fetching the source page ---------------------------------------------------------------------------------
++
+ export const extractReadableArticleHtml = (pageHtml: string): string => {
+   const withoutChrome = pageHtml
+     .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+@@ -177,6 +427,11 @@ export const extractReadableArticleHtml = (pageHtml: string): string => {
+   return body?.[1] || withoutChrome
+ }
+ 
++const SOURCE_HEADERS = {
++  Accept: 'text/html,application/xhtml+xml',
++  'User-Agent': 'Mozilla/5.0 (compatible; PanfletoReader/1.0; +https://panfleto.win)',
++}
++
+ export const fetchOriginalArticleHtml = async (
+   url: string,
+   timeoutMs: number,
+@@ -184,10 +439,7 @@ export const fetchOriginalArticleHtml = async (
+   try {
+     const response = await fetch(url, {
+       cache: 'no-store',
+-      headers: {
+-        Accept: 'text/html,application/xhtml+xml',
+-        'User-Agent': 'Mozilla/5.0 (compatible; PanfletoReader/1.0; +https://panfleto.win)',
+-      },
++      headers: SOURCE_HEADERS,
+       redirect: 'follow',
+       signal: AbortSignal.timeout(timeoutMs),
+     })
+@@ -202,6 +454,74 @@ export const fetchOriginalArticleHtml = async (
+   }
+ }
+ 
++const HEAD_BYTES = 256 * 1024
++
++// Reads only as much of a page as its <head> needs: the meta tags live there, the rest is megabytes of markup.
++const readHead = async (response: Response): Promise<string> => {
++  if (!response.body) return response.text()
++  const reader = response.body.getReader()
++  const decoder = new TextDecoder()
++  let text = ''
++  let bytes = 0
++
++  try {
++    while (bytes < HEAD_BYTES) {
++      const { done, value } = await reader.read()
++      if (done) break
++      bytes += value.byteLength
++      text += decoder.decode(value, { stream: true })
++      if (/<\/head>/i.test(text)) break
++    }
++  } finally {
++    await reader.cancel().catch(() => undefined)
++  }
++
++  return text
++}
++
++const metaContent = (head: string, key: string): string | undefined => {
++  for (const tag of head.match(/<meta\b[^>]*>/gi) || []) {
++    const name = (attrOf(tag, 'property') || attrOf(tag, 'name') || '').toLowerCase()
++    if (name === key) return attrOf(tag, 'content')?.trim() || undefined
++  }
++  return undefined
++}
++
++// The picture the publisher itself chose to represent the story (og:image). It is a better answer than
++// scanning the body for whichever <img> comes first, and the only answer when the feed carried no body.
++export const extractOpenGraphImage = (head: string, pageUrl: string): string | undefined => {
++  for (const key of ['og:image:secure_url', 'og:image', 'twitter:image', 'twitter:image:src']) {
++    const raw = metaContent(head, key)
++    if (!raw) continue
++    try {
++      const resolved = new URL(raw.replace(/&amp;/g, '&'), pageUrl).toString()
++      if (isUsableImageUrl(resolved)) return resolved
++    } catch {
++      // A malformed URL is the same as no URL; try the next tag.
++    }
++  }
++  return undefined
++}
++
++export const fetchOpenGraphImage = async (
++  url: string,
++  timeoutMs: number,
++): Promise<string | undefined> => {
++  try {
++    const response = await fetch(url, {
++      cache: 'no-store',
++      headers: SOURCE_HEADERS,
++      redirect: 'follow',
++      signal: AbortSignal.timeout(timeoutMs),
++    })
++    if (!response.ok) return undefined
++    const head = await readHead(response)
++    return extractOpenGraphImage(head, response.url || url)
++  } catch {
++    return undefined
++  }
++}
++
+ export const normalizeLayoutAttributes = (html: string): string => {
+   if (!html) return ''
+ 
+diff --git a/tests/int/personalized/articleSource.int.spec.ts b/tests/int/personalized/articleSource.int.spec.ts
+new file mode 100644
+index 0000000..c9c26bd
+--- /dev/null
++++ b/tests/int/personalized/articleSource.int.spec.ts
+@@ -0,0 +1,102 @@
++// @vitest-environment node
++import { afterEach, describe, expect, it, vi } from 'vitest'
++
++import { fetchReaderArticle } from '@/lib/personalized/reader'
++
++const TOKEN = 'TESTTOKENFORARTICLEVIEW000000000'
++
++afterEach(() => {
++  vi.unstubAllGlobals()
++})
++
++const linkList = Array.from(
++  { length: 30 },
++  (_, id) =>
++    `<li><a href="https://www.bbc.com/news/articles/${id}">Headline number ${id} about something that happened today</a></li>`,
++).join('')
++
++const entry = (overrides: Record<string, unknown> = {}) => ({
++  content: `<p>Talks resumed on Tuesday.</p><h2>More on this story</h2><ul>${linkList}</ul>`,
++  enclosures: [{ mime_type: 'image/png', url: 'https://www.bbc.com/assets/facebook.png' }],
++  feed: { id: 7, title: 'BBC News' },
++  id: 700,
++  published_at: '2026-09-29T09:00:00Z',
++  title: 'Talks resume',
++  url: 'https://www.bbc.com/news/articles/talks',
++  ...overrides,
++})
++
++describe('an article whose feed body is mostly a list of links (BBC)', () => {
++  it('is treated as thin, so the scraper is tried, and the list is gone from what is shown', async () => {
++    const fetchSpy = vi.fn(async (url: string) => {
++      if (url.includes('/entries/700/fetch-content')) return new Response('blocked', { status: 500 })
++      if (url.includes('/entries/700')) return new Response(JSON.stringify(entry()), { status: 200 })
++      return new Response('<html><head></head></html>', { headers: { 'content-type': 'text/html' }, status: 200 })
++    })
++    vi.stubGlobal('fetch', fetchSpy)
++
++    const article = await fetchReaderArticle(TOKEN, 700)
++
++    expect(fetchSpy.mock.calls.some(([url]) => String(url).includes('/entries/700/fetch-content'))).toBe(true)
++    expect(article.isThin).toBe(true)
++    expect(article.content).toContain('Talks resumed on Tuesday.')
++    expect(article.content).not.toContain('Headline number')
++    expect(article.content).not.toMatch(/More on this story/)
++  })
++
++  it('takes the publisher og:image when the feed only offered a share icon, and shows it as the hero', async () => {
++    vi.stubGlobal(
++      'fetch',
++      vi.fn(async (url: string) => {
++        if (url.includes('/entries/700/fetch-content')) return new Response('blocked', { status: 500 })
++        if (url.includes('/entries/700')) return new Response(JSON.stringify(entry()), { status: 200 })
++        if (url.startsWith('https://www.bbc.com/news/articles/talks')) {
++          return new Response(
++            '<html><head><meta property="og:image" content="https://ichef.bbci.co.uk/news/1024/talks.jpg"></head><body></body></html>',
++            { headers: { 'content-type': 'text/html' }, status: 200 },
++          )
++        }
++        return new Response('nope', { status: 404 })
++      }),
++    )
++
++    const article = await fetchReaderArticle(TOKEN, 700)
++
++    expect(article.leadImageUrl).toBe('https://ichef.bbci.co.uk/news/1024/talks.jpg')
++    expect(article.content).toContain('article-reader-hero')
++    expect(article.content).toContain('https://ichef.bbci.co.uk/news/1024/talks.jpg')
++    expect(article.content).not.toContain('facebook.png')
++  })
++
++  it('leaves leadImageUrl empty, without failing, when the publisher offers nothing usable', async () => {
++    vi.stubGlobal(
++      'fetch',
++      vi.fn(async (url: string) => {
++        if (url.includes('/entries/700/fetch-content')) return new Response('blocked', { status: 500 })
++        if (url.includes('/entries/700')) return new Response(JSON.stringify(entry()), { status: 200 })
++        throw new Error('network down')
++      }),
++    )
++
++    const article = await fetchReaderArticle(TOKEN, 700)
++
++    expect(article.leadImageUrl).toBeUndefined()
++    expect(article.isThin).toBe(true)
++  })
++
++  it('does not go looking for an image when the article came through in full', async () => {
++    const body = '<p>' + 'Contenido amplio y completo del artículo de noticias. '.repeat(40) + '</p>'
++    const fetchSpy = vi.fn(async (url: string) => {
++      if (url.includes('/entries/701')) {
++        return new Response(JSON.stringify(entry({ content: body, id: 701 })), { status: 200 })
++      }
++      return new Response('nope', { status: 404 })
++    })
++    vi.stubGlobal('fetch', fetchSpy)
++
++    const article = await fetchReaderArticle(TOKEN, 701)
++
++    expect(article.isThin).toBe(false)
++    expect(fetchSpy).toHaveBeenCalledTimes(1)
++  })
++})
+diff --git a/tests/int/personalized/embed.int.spec.ts b/tests/int/personalized/embed.int.spec.ts
+new file mode 100644
+index 0000000..5e3ad74
+--- /dev/null
++++ b/tests/int/personalized/embed.int.spec.ts
+@@ -0,0 +1,137 @@
++// @vitest-environment node
++import { beforeEach, describe, expect, it, vi } from 'vitest'
++
++import {
++  clearEmbedCache,
++  evaluateFramingHeaders,
++  isPublicHttpUrl,
++  probeEmbeddable,
++} from '@/lib/personalized/embed'
++
++const OWN = 'https://panfleto.win'
++const headers = (values: Record<string, string>) => ({
++  get: (name: string) => values[name.toLowerCase()] ?? null,
++})
++
++beforeEach(() => clearEmbedCache())
++
++describe('evaluateFramingHeaders', () => {
++  it('allows a page that sets no framing policy', () => {
++    expect(evaluateFramingHeaders(headers({}), OWN)).toBe('allowed')
++  })
++
++  it('blocks X-Frame-Options DENY, SAMEORIGIN and ALLOW-FROM', () => {
++    for (const value of ['DENY', 'SAMEORIGIN', 'sameorigin', 'ALLOW-FROM https://panfleto.win']) {
++      expect(evaluateFramingHeaders(headers({ 'x-frame-options': value }), OWN), value).toBe('blocked')
++    }
++  })
++
++  it('blocks CSP frame-ancestors that do not name us', () => {
++    for (const value of [
++      "frame-ancestors 'none'",
++      "frame-ancestors 'self'",
++      "default-src 'self'; frame-ancestors 'self' https://*.example.com",
++      'frame-ancestors',
++    ]) {
++      expect(evaluateFramingHeaders(headers({ 'content-security-policy': value }), OWN), value).toBe('blocked')
++    }
++  })
++
++  it('allows CSP frame-ancestors that let us in', () => {
++    for (const value of [
++      'frame-ancestors *',
++      'frame-ancestors https:',
++      'frame-ancestors https://panfleto.win',
++      'frame-ancestors https://*.win',
++      "frame-ancestors 'self' https://panfleto.win",
++    ]) {
++      expect(evaluateFramingHeaders(headers({ 'content-security-policy': value }), OWN), value).toBe('allowed')
++    }
++  })
++
++  it('ignores a CSP that says nothing about framing', () => {
++    expect(
++      evaluateFramingHeaders(headers({ 'content-security-policy': "default-src 'self'; img-src *" }), OWN),
++    ).toBe('allowed')
++  })
++
++  it('blocks when any one of several policies refuses', () => {
++    expect(
++      evaluateFramingHeaders(
++        headers({ 'content-security-policy': "frame-ancestors *, frame-ancestors 'none'" }),
++        OWN,
++      ),
++    ).toBe('blocked')
++  })
++})
++
++describe('isPublicHttpUrl', () => {
++  it('accepts public web addresses and refuses internal ones', () => {
++    expect(isPublicHttpUrl('https://www.bbc.com/news/articles/abc')).toBe(true)
++    for (const url of [
++      'http://localhost:3000/x',
++      'https://127.0.0.1/x',
++      'http://10.0.0.5/x',
++      'http://192.168.1.10/x',
++      'http://172.20.0.1/x',
++      'http://169.254.169.254/latest/meta-data',
++      'http://[::1]/x',
++      'https://db.internal/x',
++      'file:///etc/passwd',
++      'javascript:alert(1)',
++      'not a url',
++    ]) {
++      expect(isPublicHttpUrl(url), url).toBe(false)
++    }
++  })
++})
++
++describe('probeEmbeddable', () => {
++  const respond = (init: ResponseInit & { url?: string }, headersInit: Record<string, string> = {}) => {
++    const response = new Response('<html></html>', { ...init, headers: headersInit })
++    if (init.url) Object.defineProperty(response, 'url', { value: init.url })
++    return response
++  }
++
++  it('reports allowed, and remembers it per site', async () => {
++    const fetchImpl = vi.fn(async () => respond({ status: 200 }))
++    const url = 'https://www.example.com/a'
++
++    expect(await probeEmbeddable(url, { fetchImpl: fetchImpl as never, ownOrigin: OWN })).toBe('allowed')
++    expect(await probeEmbeddable('https://www.example.com/b', { fetchImpl: fetchImpl as never, ownOrigin: OWN })).toBe('allowed')
++    expect(fetchImpl).toHaveBeenCalledTimes(1)
++  })
++
++  it('reports blocked when the publisher forbids framing', async () => {
++    const fetchImpl = vi.fn(async () => respond({ status: 200 }, { 'x-frame-options': 'SAMEORIGIN' }))
++    expect(await probeEmbeddable('https://www.bbc.com/news/x', { fetchImpl: fetchImpl as never, ownOrigin: OWN })).toBe('blocked')
++  })
++
++  it('does not trust the headers of a bot wall: 403 is unknown, not blocked, and is not remembered', async () => {
++    const fetchImpl = vi.fn(async () => respond({ status: 403 }, { 'x-frame-options': 'SAMEORIGIN' }))
++    const url = 'https://www.walled.example/a'
++
++    expect(await probeEmbeddable(url, { fetchImpl: fetchImpl as never, ownOrigin: OWN })).toBe('unknown')
++    expect(await probeEmbeddable(url, { fetchImpl: fetchImpl as never, ownOrigin: OWN })).toBe('unknown')
++    expect(fetchImpl).toHaveBeenCalledTimes(2)
++  })
++
++  it('reports unknown when the publisher cannot be reached', async () => {
++    const fetchImpl = vi.fn(async () => {
++      throw new Error('timeout')
++    })
++    expect(await probeEmbeddable('https://slow.example/a', { fetchImpl: fetchImpl as never, ownOrigin: OWN })).toBe('unknown')
++  })
++
++  it('blocks plain http (mixed content) and internal addresses without making a request', async () => {
++    const fetchImpl = vi.fn()
++    expect(await probeEmbeddable('http://www.example.com/a', { fetchImpl: fetchImpl as never, ownOrigin: OWN })).toBe('blocked')
++    expect(await probeEmbeddable('https://169.254.169.254/latest', { fetchImpl: fetchImpl as never, ownOrigin: OWN })).toBe('blocked')
++    expect(fetchImpl).not.toHaveBeenCalled()
++  })
++
++  it('blocks when the page redirects to plain http', async () => {
++    const fetchImpl = vi.fn(async () => respond({ status: 200, url: 'http://www.example.com/a' }))
++    expect(await probeEmbeddable('https://www.example.com/a', { fetchImpl: fetchImpl as never, ownOrigin: OWN })).toBe('blocked')
++  })
++})
+diff --git a/tests/int/personalized/images.int.spec.ts b/tests/int/personalized/images.int.spec.ts
+new file mode 100644
+index 0000000..dde6b9d
+--- /dev/null
++++ b/tests/int/personalized/images.int.spec.ts
+@@ -0,0 +1,151 @@
++// @vitest-environment node
++import { describe, expect, it } from 'vitest'
++
++import {
++  bestHttpFromSrcset,
++  hashSeed,
++  imageSizeHint,
++  isUsableImageUrl,
++} from '@/lib/personalized/images'
++import { PLACEHOLDER_COUNT, placeholderIndex } from '@/components/Editorial/StoryPlaceholder'
++import { extractLeadImage } from '@/lib/personalized/readerHtml'
++
++describe('isUsableImageUrl', () => {
++  it('accepts ordinary photographs', () => {
++    expect(isUsableImageUrl('https://ichef.bbci.co.uk/news/1024/cpsprodpb/1234/senate-hearing.jpg')).toBe(true)
++    expect(isUsableImageUrl('https://static01.nyt.com/images/2026/09/29/world/29israel/29israel-facebookJumbo.jpg')).toBe(true)
++    expect(isUsableImageUrl('https://cdn.example.com/photo?id=42')).toBe(true)
++  })
++
++  it('rejects social and share furniture', () => {
++    expect(isUsableImageUrl('https://example.com/assets/facebook.png')).toBe(false)
++    expect(isUsableImageUrl('https://example.com/img/fb_share_icon.png')).toBe(false)
++    expect(isUsableImageUrl('https://example.com/static/twitter-x-logo.png')).toBe(false)
++    expect(isUsableImageUrl('https://static.xx.fbcdn.net/rsrc.php/v3/yx/r/abc.png')).toBe(false)
++    expect(isUsableImageUrl('https://www.facebook.com/tr?id=123&ev=PageView')).toBe(false)
++    expect(isUsableImageUrl('https://example.com/icons/whatsapp.png')).toBe(false)
++  })
++
++  it('rejects logos, avatars, sprites, favicons and tracking pixels', () => {
++    for (const url of [
++      'https://example.com/logo.png',
++      'https://example.com/images/site-logo-dark.webp',
++      'https://example.com/avatars/jane.jpg',
++      'https://example.com/sprite.png',
++      'https://example.com/favicon.png',
++      'https://example.com/pixel.gif',
++      'https://example.com/t/1x1.gif',
++      'https://secure.gravatar.com/avatar/abc',
++      'https://ad.doubleclick.net/x.png',
++    ]) {
++      expect(isUsableImageUrl(url), url).toBe(false)
++    }
++  })
++
++  it('rejects vector and icon formats, which are never the photograph', () => {
++    expect(isUsableImageUrl('https://example.com/share.svg')).toBe(false)
++    expect(isUsableImageUrl('https://example.com/hero.svg')).toBe(false)
++    expect(isUsableImageUrl('https://example.com/x.ico')).toBe(false)
++  })
++
++  it('keeps a photo whose long filename merely mentions a platform', () => {
++    expect(
++      isUsableImageUrl('https://example.com/2026/09/facebook-hearing-senate-zuckerberg-testifies.jpg'),
++    ).toBe(true)
++  })
++
++  it('rejects URLs that say they are thumbnails', () => {
++    expect(isUsableImageUrl('https://example.com/wp-content/uploads/2026/story-150x150.jpg')).toBe(false)
++    expect(isUsableImageUrl('https://cdn.example.com/photo.jpg?w=96')).toBe(false)
++    expect(isUsableImageUrl('https://cdn.example.com/photo.jpg?width=1200')).toBe(true)
++    expect(imageSizeHint('https://example.com/a-300x200.jpg')).toBe(300)
++    expect(imageSizeHint('https://example.com/a.jpg')).toBeUndefined()
++  })
++
++  it('rejects empty, relative and non-http values', () => {
++    expect(isUsableImageUrl(undefined)).toBe(false)
++    expect(isUsableImageUrl('')).toBe(false)
++    expect(isUsableImageUrl('/images/a.jpg')).toBe(false)
++    expect(isUsableImageUrl('data:image/png;base64,AAAA')).toBe(false)
++  })
++})
++
++describe('bestHttpFromSrcset', () => {
++  const srcset =
++    'https://ichef.bbci.co.uk/news/240/a.jpg 240w, https://ichef.bbci.co.uk/news/480/a.jpg 480w, https://ichef.bbci.co.uk/news/1024/a.jpg 1024w, https://ichef.bbci.co.uk/news/2048/a.jpg 2048w'
++
++  it('takes the widest entry, not the first thumbnail', () => {
++    expect(bestHttpFromSrcset(srcset)).toBe('https://ichef.bbci.co.uk/news/2048/a.jpg')
++  })
++
++  it('can cap the width so a card does not download a 2048px original', () => {
++    expect(bestHttpFromSrcset(srcset, { maxDescriptor: 1280 })).toBe('https://ichef.bbci.co.uk/news/1024/a.jpg')
++    expect(bestHttpFromSrcset('https://x.test/a.jpg 3000w, https://x.test/b.jpg 4000w', { maxDescriptor: 1280 })).toBe(
++      'https://x.test/a.jpg',
++    )
++  })
++
++  it('keeps commas that belong to a URL', () => {
++    expect(bestHttpFromSrcset('https://res.example.com/w_300,h_200/a.jpg 300w, https://res.example.com/w_900,h_600/a.jpg 900w')).toBe(
++      'https://res.example.com/w_900,h_600/a.jpg',
++    )
++  })
++
++  it('ignores non-http candidates', () => {
++    expect(bestHttpFromSrcset('/a.jpg 1x, /b.jpg 2x')).toBeUndefined()
++  })
++})
++
++describe('extractLeadImage', () => {
++  it('skips a share-button logo and takes the next real picture', () => {
++    const html = `
++      <a href="https://facebook.com/share"><img src="https://example.com/assets/facebook.png" alt="Facebook"></a>
++      <a href="https://twitter.com/share"><img src="https://example.com/assets/twitter.png" alt="Twitter"></a>
++      <img src="https://cdn.example.com/2026/09/hearing-room.jpg" alt="">
++    `
++    expect(extractLeadImage(html)).toBe('https://cdn.example.com/2026/09/hearing-room.jpg')
++  })
++
++  it('returns undefined when every candidate is furniture, so the card shows a placeholder', () => {
++    const html = `
++      <img src="https://example.com/assets/facebook.png">
++      <img src="https://example.com/logo.png">
++      <img src="https://example.com/a.jpg" width="24" height="24">
++    `
++    expect(extractLeadImage(html)).toBeUndefined()
++  })
++
++  it('finds the real picture behind a lazy-load pixel', () => {
++    const html = '<img src="https://example.com/pixel.gif" data-src="https://cdn.example.com/real-photo.jpg">'
++    expect(extractLeadImage(html)).toBe('https://cdn.example.com/real-photo.jpg')
++  })
++
++  it('prefers the larger srcset entry over a thumbnail src', () => {
++    const html =
++      '<img src="https://cdn.example.com/photo-320.jpg" srcset="https://cdn.example.com/photo-320.jpg 320w, https://cdn.example.com/photo-960.jpg 960w">'
++    expect(extractLeadImage(html)).toBe('https://cdn.example.com/photo-960.jpg')
++  })
++
++  it('takes a usable enclosure first and skips a logo enclosure', () => {
++    expect(
++      extractLeadImage('<img src="https://cdn.example.com/body.jpg">', [
++        { mime_type: 'image/png', url: 'https://example.com/logo.png' },
++        { mime_type: 'image/jpeg', url: 'https://cdn.example.com/enclosure.jpg' },
++      ]),
++    ).toBe('https://cdn.example.com/enclosure.jpg')
++  })
++})
++
++describe('placeholder choice', () => {
++  it('is stable for a story and spreads across the set', () => {
++    expect(hashSeed('12345')).toBe(hashSeed('12345'))
++    expect(placeholderIndex('12345')).toBe(placeholderIndex('12345'))
++
++    const used = new Set(Array.from({ length: 200 }, (_, id) => placeholderIndex(String(id))))
++    expect(used.size).toBe(PLACEHOLDER_COUNT)
++    for (const index of used) {
++      expect(index).toBeGreaterThanOrEqual(0)
++      expect(index).toBeLessThan(PLACEHOLDER_COUNT)
++    }
++  })
++})
+diff --git a/tests/int/personalized/readerClean.int.spec.ts b/tests/int/personalized/readerClean.int.spec.ts
+new file mode 100644
+index 0000000..f178c8a
+--- /dev/null
++++ b/tests/int/personalized/readerClean.int.spec.ts
+@@ -0,0 +1,205 @@
++// @vitest-environment node
++import { describe, expect, it } from 'vitest'
++
++import {
++  enhanceReaderImages,
++  extractOpenGraphImage,
++  isChromeText,
++  stripReaderChrome,
++} from '@/lib/personalized/readerHtml'
++import { isThinAfterCleaning, normalizeReaderContent, stripTags } from '@/lib/personalized/reader'
++
++const STORY = '<p>Nearly every Democratic senator voted to advance a measure calling for a human rights report on the use of American weapons.</p>'
++
++// Verbatim from a scraped New York Times page.
++const NYT_WALL =
++  'See more of our coverage in your search results.Encuentra más de nuestra cobertura en los resultados de búsqueda. Add The New York Times on GoogleAgrega The New York Times en Google ' +
++  'See more of our coverage in your search results.Encuentra más de nuestra cobertura en los resultados de búsqueda. Add The New York Times on GoogleAgrega The New York Times en Google' +
++  'Thank you for your patience while we verify access. If you are in Reader mode please exit and log into your Times account, or subscribe for all of The Times.' +
++  'Thank you for your patience while we verify access.Already a subscriber? Log in.Want all of The Times? Subscribe.Related Content'
++
++describe('New York Times paywall and search-promo text', () => {
++  it('is recognised as chrome when it arrives as one run-together blob', () => {
++    expect(isChromeText(NYT_WALL)).toBe(true)
++  })
++
++  it('is removed from a page as one block, leaving the story', () => {
++    const out = normalizeReaderContent(`<div>${NYT_WALL}</div>${STORY}`)
++    expect(out).toContain('Nearly every Democratic senator')
++    expect(out).not.toMatch(/See more of our coverage/i)
++    expect(out).not.toMatch(/Encuentra más de nuestra cobertura/i)
++    expect(out).not.toMatch(/Add The New York Times on Google/i)
++    expect(out).not.toMatch(/verify access/i)
++    expect(out).not.toMatch(/Already a subscriber/i)
++    expect(out).not.toMatch(/Want all of The Times/i)
++    expect(out).not.toMatch(/Related Content/i)
++  })
++
++  it('is removed when it is spread over separate elements', () => {
++    const out = normalizeReaderContent(`
++      <div class="promo"><p>See more of our coverage in your search results.</p><p>Encuentra más de nuestra cobertura en los resultados de búsqueda.</p>
++        <a href="https://google.com/preferences">Add The New York Times on Google</a><a href="https://google.com/preferences">Agrega The New York Times en Google</a></div>
++      <section><p>Thank you for your patience while we verify access.</p>
++        <p>If you are in Reader mode please exit and log into your Times account, or subscribe for all of The Times.</p>
++        <p>Already a subscriber? <a href="/login">Log in.</a></p><p>Want all of The Times? <a href="/subscribe">Subscribe.</a></p></section>
++      ${STORY}
++      <h3>Related Content</h3>
++    `)
++    expect(out).toContain('Nearly every Democratic senator')
++    expect(out).not.toMatch(/coverage in your search|Encuentra|New York Times on Google|patience|Reader mode|subscriber|Subscribe/i)
++    expect(out).not.toMatch(/Related Content/i)
++  })
++
++  it('removes the sentence when it is glued to a paragraph of real text', () => {
++    const out = normalizeReaderContent(
++      '<p>The vote came late on Tuesday. Thank you for your patience while we verify access. Senators left soon after.</p>',
++    )
++    expect(out).toContain('The vote came late on Tuesday.')
++    expect(out).toContain('Senators left soon after.')
++    expect(out).not.toMatch(/patience/i)
++  })
++
++  it('does not touch an article that merely mentions the Times', () => {
++    const html = '<p>The New York Times reported on Tuesday that the subscriber count rose, and readers asked to log in less often.</p>'
++    expect(normalizeReaderContent(html)).toBe(html)
++  })
++})
++
++describe('depth-aware removal', () => {
++  it('removes a nested chrome div without unbalancing the tree', () => {
++    const html = '<div class="a"><div class="ad"><div>Advertisement</div></div><p>Real paragraph that stays.</p></div>'
++    const out = stripReaderChrome(html)
++    expect(out).toBe('<div class="a"><p>Real paragraph that stays.</p></div>')
++    expect((out.match(/<div/g) || []).length).toBe((out.match(/<\/div>/g) || []).length)
++  })
++
++  it('never removes a container that holds a real picture, even beside share text', () => {
++    const html = '<figure><img src="https://cdn.example.com/photo.jpg" alt=""><figcaption>Share</figcaption></figure>'
++    expect(stripReaderChrome(html)).toContain('photo.jpg')
++  })
++})
++
++describe('link lists', () => {
++  const list = `
++    <p>Short teaser from the feed.</p>
++    <ul>
++      <li><a href="https://news.example.com/a">Markets rally as inflation cools for third month</a></li>
++      <li><a href="https://news.example.com/b">Storm expected to hit coast on Friday</a></li>
++      <li><a href="https://news.example.com/c">City council approves new transit plan</a></li>
++      <li><a href="https://news.example.com/d">What we know about the stadium deal</a></li>
++      <li><a href="https://news.example.com/e">Ten photos from the harvest festival</a></li>
++    </ul>`
++
++  it('drops a list that is nothing but links, for any source', () => {
++    const out = normalizeReaderContent(list)
++    expect(out).toContain('Short teaser from the feed.')
++    expect(out).not.toContain('news.example.com')
++    expect(out).not.toMatch(/<ul/)
++  })
++
++  it('drops the heading with the list it introduces', () => {
++    const out = normalizeReaderContent(`${STORY}<h2>More on this story</h2>${list}`)
++    expect(out).toContain('Nearly every Democratic senator')
++    expect(out).not.toMatch(/More on this story|news\.example\.com/)
++  })
++
++  it('drops "Related topics" and its link cluster even when it is not a list', () => {
++    const cluster =
++      '<div><a href="/t/1">Politics</a> <a href="/t/2">Middle East</a> <a href="/t/3">Congress</a> <a href="/t/4">Human rights</a> <a href="/t/5">Weapons</a></div>'
++    const out = normalizeReaderContent(`${STORY}<h3>Related topics</h3>${cluster}`)
++    expect(out).toContain('Nearly every Democratic senator')
++    expect(out).not.toMatch(/Related topics|Congress|Human rights/)
++  })
++
++  it('drops a run of paragraphs that are each only a link', () => {
++    const run = ['a', 'b', 'c', 'd', 'e']
++      .map((id) => `<p><a href="https://news.example.com/${id}">Headline number ${id} of the day</a></p>`)
++      .join('')
++    const out = normalizeReaderContent(`${STORY}${run}`)
++    expect(out).toContain('Nearly every Democratic senator')
++    expect(out).not.toContain('news.example.com')
++  })
++
++  it('keeps a list with real prose in it', () => {
++    const html =
++      '<ul><li>The <a href="https://example.com/report">report</a> found that spending rose by nine percent over the decade.</li><li>Officials <a href="https://example.com/reply">disputed</a> the figure and said the methodology was flawed.</li><li>A second review, due in spring, will settle the question of scope.</li></ul>'
++    expect(normalizeReaderContent(html)).toBe(html)
++  })
++
++  it('counts a body that was mostly a link list as thin, however long it started', () => {
++    const items = Array.from(
++      { length: 40 },
++      (_, id) => `<li><a href="https://news.example.com/${id}">Headline number ${id} about something that happened today</a></li>`,
++    ).join('')
++    const html = `<p>Teaser.</p><ul>${items}</ul>`
++    expect(stripTags(html).length).toBeGreaterThan(1000)
++    expect(isThinAfterCleaning(html)).toBe(true)
++  })
++})
++
++describe('images in the body', () => {
++  it('removes share icons, logos and pixels, and the empty links around them', () => {
++    const out = normalizeReaderContent(`
++      <p><a href="https://facebook.com/share"><img src="https://example.com/assets/facebook.png" alt="Facebook"></a>
++      <a href="https://twitter.com/share"><img src="https://example.com/assets/twitter.png" alt="Twitter"></a></p>
++      <img src="https://example.com/t/pixel.gif" width="1" height="1">
++      <img src="https://cdn.example.com/lazy-placeholder.jpg" width="16" height="16">
++      <img src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==">
++      ${STORY}
++      <figure><img src="https://cdn.example.com/2026/09/chamber.jpg" alt="The chamber"><figcaption>The Senate chamber.</figcaption></figure>
++    `)
++    expect(out).not.toMatch(/facebook|twitter|pixel|lazy-placeholder|data:image/i)
++    expect(out).not.toMatch(/<a\b[^>]*>\s*<\/a>/)
++    expect(out).toContain('chamber.jpg')
++    expect(out).toContain('The Senate chamber.')
++  })
++
++  it('injects a lead image when the only body images were furniture', () => {
++    const out = normalizeReaderContent(
++      `<img src="https://example.com/assets/facebook.png">${STORY}`,
++      { leadImageUrl: 'https://cdn.example.com/lead.jpg' },
++    )
++    expect(out).toContain('article-reader-hero')
++    expect(out).toContain('https://cdn.example.com/lead.jpg')
++    expect(out).not.toContain('facebook.png')
++  })
++
++  it('adds lazy loading and no-referrer, leaving the first image eager', () => {
++    const out = enhanceReaderImages('<img src="https://a.test/1.jpg"><img src="https://a.test/2.jpg" loading="eager">')
++    const [first, second] = out.match(/<img[^>]*>/g) || []
++    expect(first).toContain('referrerpolicy="no-referrer"')
++    expect(first).not.toContain('loading=')
++    expect(second).toContain('loading="eager"')
++    expect(enhanceReaderImages('<p>No images</p>')).toBe('<p>No images</p>')
++  })
++})
++
++describe('og:image', () => {
++  it('reads the publisher-chosen picture, in either attribute order, and resolves relative URLs', () => {
++    expect(
++      extractOpenGraphImage(
++        '<head><meta property="og:image" content="https://ichef.bbci.co.uk/news/1024/story.jpg"></head>',
++        'https://www.bbc.com/news/articles/abc',
++      ),
++    ).toBe('https://ichef.bbci.co.uk/news/1024/story.jpg')
++
++    expect(
++      extractOpenGraphImage(
++        '<meta content="/media/story-hero.jpg?a=1&amp;b=2" property="og:image">',
++        'https://www.example.com/news/x',
++      ),
++    ).toBe('https://www.example.com/media/story-hero.jpg?a=1&b=2')
++  })
++
++  it('falls through to twitter:image and refuses furniture', () => {
++    expect(
++      extractOpenGraphImage(
++        '<meta property="og:image" content="https://www.example.com/static/logo.png"><meta name="twitter:image" content="https://cdn.example.com/photo.jpg">',
++        'https://www.example.com/x',
++      ),
++    ).toBe('https://cdn.example.com/photo.jpg')
++    expect(
++      extractOpenGraphImage('<meta property="og:image" content="https://www.example.com/logo.png">', 'https://www.example.com/x'),
++    ).toBeUndefined()
++  })
++})

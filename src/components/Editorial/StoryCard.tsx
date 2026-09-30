@@ -1,13 +1,16 @@
 import Link from 'next/link'
 import React from 'react'
 
+import { isUsableImageUrl } from '@/lib/personalized/images'
 import type { EditionStory } from '@/lib/personalized/ranking'
 import { cn } from '@/utilities/ui'
+
+import { StoryImage } from './StoryImage'
 
 // ArticleCard's sibling for the personalized edition: the same newspaper classes, for a story that lives in
 // the reader's own feeds rather than in Payload, so it links out to the publisher.
 
-const safeHref = (url: string) => (/^https?:\/\//i.test(url) ? url : undefined)
+export const safeHref = (url: string) => (/^https?:\/\//i.test(url) ? url : undefined)
 
 export const formatAge = (publishedAt: string, now: number) => {
   const minutes = Math.max(0, Math.round((now - new Date(publishedAt).getTime()) / 60_000))
@@ -54,6 +57,7 @@ export function StorySignals({ story }: { story: EditionStory }) {
 export function StoryCard({
   className,
   now,
+  placeholder = true,
   showImage = true,
   showSummary = true,
   story,
@@ -61,6 +65,8 @@ export function StoryCard({
 }: {
   className?: string
   now: number
+  // Show one of our placeholders when the story has no usable picture (false: no image slot at all).
+  placeholder?: boolean
   showImage?: boolean
   showSummary?: boolean
   story: EditionStory
@@ -78,17 +84,17 @@ export function StoryCard({
         className,
       )}
     >
-      {showImage && story.imageUrl && articleHref && (
+      {showImage && articleHref && (placeholder || isUsableImageUrl(story.imageUrl)) && (
         <Link
           aria-label={story.title}
           className="editorial-card__image"
           href={articleHref}
           tabIndex={-1}
         >
-          <img
-            alt={story.title}
-            className="h-full w-full object-cover"
-            loading={variant === 'lead' ? 'eager' : 'lazy'}
+          <StoryImage
+            eager={variant === 'lead'}
+            placeholder={placeholder}
+            seed={String(story.id ?? story.url)}
             src={story.imageUrl}
           />
         </Link>
