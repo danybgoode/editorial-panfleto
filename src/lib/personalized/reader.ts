@@ -195,6 +195,31 @@ export const isThinContent = (content?: string): boolean => {
   return stripTags(content).length < THIN_CONTENT_THRESHOLD
 }
 
+const ATTR_QUOTED = `"[^"]*"|'[^']*'`
+
+// Strip layout-only attributes that make scraped HTML wider than the viewport.
+// Miniflux already sanitizes XSS; this is so width/nowrap/style cannot size the column.
+export const normalizeReaderContent = (html: string): string => {
+  if (!html) return ''
+
+  let out = html
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<link\b[^>]*>/gi, '')
+    .replace(new RegExp(`\\sstyle\\s*=\\s*(${ATTR_QUOTED})`, 'gi'), '')
+
+  out = out.replace(/<([a-z][\w:-]*)(\s[^>]*)?>/gi, (match, tag: string, attrs?: string) => {
+    if (!attrs) return match
+    if (tag.toLowerCase() === 'img') return match
+    const cleaned = attrs.replace(
+      new RegExp(`\\s(?:width|height)\\s*=\\s*(${ATTR_QUOTED}|[^\\s>]+)`, 'gi'),
+      '',
+    )
+    return `<${tag}${cleaned}>`
+  })
+
+  return out
+}
+
 export const fetchReaderArticle = async (
   token: string,
   entryId: number,
@@ -246,7 +271,7 @@ export const fetchReaderArticle = async (
     author: entry.author || undefined,
     categoryTitle: entry.feed?.category?.title || entry.category?.title || 'Sin categoría',
     commentsUrl: entry.comments_url || undefined,
-    content,
+    content: normalizeReaderContent(content),
     feedSiteUrl: entry.feed?.site_url || entry.feed?.feed_url || undefined,
     feedTitle: entry.feed?.title || '',
     id: entry.id,

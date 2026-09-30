@@ -53,8 +53,8 @@ function CommentNode({
   }
 
   return (
-    <div className="hn-comment flex flex-col gap-1.5 text-sm py-1.5" id={`comment-${comment.id}`}>
-      <div className="hn-comment-header flex items-center gap-2 text-xs text-[var(--ep-muted)]">
+    <div className="hn-comment flex min-w-0 flex-col gap-1.5 text-sm py-1.5" id={`comment-${comment.id}`}>
+      <div className="hn-comment-header flex min-w-0 flex-wrap items-center gap-2 text-xs text-[var(--ep-muted)]">
         <button
           aria-expanded={!collapsed}
           className="font-mono text-xs px-1 py-0.5 rounded border border-[var(--ep-rule)] hover:bg-[var(--ep-paper-muted)] cursor-pointer text-[var(--ep-ink)] select-none"
@@ -84,13 +84,13 @@ function CommentNode({
         <>
           {comment.text && (
             <div
-              className="hn-comment-body prose prose-sm max-w-none text-[var(--ep-ink)] leading-relaxed [&>p]:mb-2 [&_a]:text-[var(--ep-accent)] [&_a]:underline [&_pre]:overflow-x-auto [&_pre]:bg-[var(--ep-paper-muted)] [&_pre]:p-2 [&_pre]:rounded"
+              className="hn-comment-body prose prose-sm min-w-0 max-w-none text-[var(--ep-ink)] leading-relaxed [overflow-wrap:anywhere] [&>p]:mb-2 [&_a]:text-[var(--ep-accent)] [&_a]:underline [&_pre]:overflow-x-auto [&_pre]:bg-[var(--ep-paper-muted)] [&_pre]:p-2 [&_pre]:rounded"
               dangerouslySetInnerHTML={{ __html: comment.text }}
             />
           )}
 
           {comment.children && comment.children.length > 0 && (
-            <div className="hn-comment-replies border-l-2 border-[var(--ep-rule)] pl-3 sm:pl-4 mt-2 flex flex-col gap-2.5">
+            <div className="hn-comment-replies mt-2 flex min-w-0 flex-col gap-2.5 border-l-2 border-[var(--ep-rule)] pl-3 sm:pl-4">
               {comment.children.map((child) => (
                 <CommentNode
                   comment={child}
@@ -121,7 +121,7 @@ export function ArticleComments({
 
   if (!comments || comments.length === 0) {
     return (
-      <section aria-label="Comentarios" className="article-comments-section mt-10 pt-6 border-t border-[var(--ep-rule)]">
+      <section aria-label="Comentarios" className="article-comments-section mt-10 min-w-0 max-w-full pt-6 border-t border-[var(--ep-rule)]">
         <div className="flex items-center justify-between gap-4 mb-4">
           <h2 className="text-xl font-bold tracking-tight text-[var(--ep-ink)]">
             Comentarios
@@ -145,7 +145,7 @@ export function ArticleComments({
   }
 
   return (
-    <section aria-label="Comentarios" className="article-comments-section mt-10 pt-6 border-t border-[var(--ep-rule)]">
+    <section aria-label="Comentarios" className="article-comments-section mt-10 min-w-0 max-w-full pt-6 border-t border-[var(--ep-rule)]">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6 pb-2 border-b border-[var(--ep-rule)]">
         <div>
           <h2 className="text-xl font-bold tracking-tight text-[var(--ep-ink)] flex items-center gap-2">
@@ -191,7 +191,7 @@ export function ArticleComments({
         </div>
       </div>
 
-      <div className="comments-tree flex flex-col gap-3">
+      <div className="comments-tree flex min-w-0 flex-col gap-3">
         {comments.map((comment) => (
           <CommentNode
             comment={comment}

@@ -3,7 +3,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { getPaywallBypassLinks } from '@/components/Editorial/PaywallRail'
 import { MinifluxRequestError } from '@/lib/miniflux/client'
-import { fetchReaderArticle, isThinContent, stripTags } from '@/lib/personalized/reader'
+import {
+  fetchReaderArticle,
+  isThinContent,
+  normalizeReaderContent,
+  stripTags,
+} from '@/lib/personalized/reader'
 
 const TOKEN = 'TESTTOKENFORARTICLEVIEW000000000'
 
@@ -44,6 +49,33 @@ describe('Paywall Bypass rail links', () => {
     expect(links.find((l) => l.name === 'unwall.app')?.url).toBe(
       'https://unwall.app/elpais.com/sociedad/articulo.html',
     )
+  })
+})
+
+describe('normalizeReaderContent', () => {
+  it('strips style tags, style attributes, and non-img width/height', () => {
+    const raw = `
+      <style>.wide { width: 900px; }</style>
+      <link rel="stylesheet" href="https://example.com/a.css">
+      <div style="width: 900px; white-space: nowrap" width="900" height="40">
+        <p style="white-space:nowrap">Hello world</p>
+        <img src="https://example.com/a.jpg" width="1200" height="800" alt="">
+        <table width="1024"><tr><td>cell</td></tr></table>
+      </div>
+    `
+    const out = normalizeReaderContent(raw)
+    expect(out).not.toContain('<style')
+    expect(out).not.toContain('<link')
+    expect(out).not.toMatch(/\sstyle=/i)
+    expect(out).toContain('<img src="https://example.com/a.jpg" width="1200" height="800" alt="">')
+    expect(out).not.toMatch(/<table[^>]*width=/i)
+    expect(out).toContain('Hello world')
+    expect(out).toContain('<td>cell</td>')
+  })
+
+  it('leaves ordinary paragraphs unchanged', () => {
+    const html = '<p>Contenido amplio y completo del artículo de noticias. </p>'
+    expect(normalizeReaderContent(html)).toBe(html)
   })
 })
 

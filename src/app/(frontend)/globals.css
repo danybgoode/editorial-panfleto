@@ -229,10 +229,19 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    overflow-x: clip;
+  }
   body {
     @apply bg-background text-foreground min-h-[100vh] flex flex-col;
     font-family: var(--ep-sans);
+    overflow-x: clip;
+    min-width: 0;
     text-rendering: optimizeLegibility;
+  }
+  main {
+    min-width: 0;
+    max-width: 100%;
   }
 
   a {
@@ -252,6 +261,7 @@
 .ep-container {
   width: min(calc(100% - 2rem), var(--ep-max));
   margin-inline: auto;
+  min-width: 0;
 }
 
 .skip-link {
@@ -746,13 +756,16 @@
 }
 
 .article-page {
+  min-width: 0;
+  max-width: 100%;
   padding-bottom: clamp(3rem, 6vw, 6rem);
 }
 
 .article-header {
   display: grid;
   gap: 0.85rem;
-  max-width: 52rem;
+  min-width: 0;
+  max-width: min(52rem, 100%);
   padding-block: clamp(1.5rem, 4vw, 3rem) 1rem;
 }
 
@@ -793,7 +806,11 @@
 
 .article-layout {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 1.5rem;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: clip;
 }
 
 .article-share {
@@ -815,11 +832,15 @@
 }
 
 .article-body-wrap {
-  max-width: var(--ep-read);
+  min-width: 0;
+  max-width: min(var(--ep-read), 100%);
+  overflow-x: clip;
 }
 
 .article-aside {
   margin-top: 1rem;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .article-aside.news-rail > div {
@@ -858,8 +879,14 @@
   font-family: var(--ep-serif);
   font-size: clamp(1.1rem, 1.3vw, 1.22rem);
   line-height: 1.74;
-  overflow-wrap: break-word;
+  min-width: 0;
+  overflow-x: clip;
+  overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+.payload-richtext :where(p, div, li, span, td, th) {
+  white-space: normal !important;
 }
 
 .payload-richtext :where(p, ul, ol, blockquote, figure, table) {
@@ -895,7 +922,13 @@
 }
 
 .payload-richtext img,
-.payload-richtext picture {
+.payload-richtext picture,
+.payload-richtext video {
+  max-width: 100%;
+  height: auto;
+}
+
+.payload-richtext iframe {
   max-width: 100%;
 }
 
@@ -910,6 +943,7 @@
 
 .payload-richtext pre {
   overflow-x: auto;
+  white-space: pre-wrap;
   word-break: break-all;
   max-width: 100%;
 }
@@ -924,6 +958,20 @@
   border-bottom: 1px solid var(--ep-rule);
   padding: 0.55rem;
   text-align: left;
+}
+
+.article-comments-section,
+.comments-tree,
+.hn-comment,
+.hn-comment-body,
+.hn-comment-replies {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.hn-comment-body {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .paywall-rail {
@@ -1189,16 +1237,6 @@
   .payload-richtext {
     overflow-wrap: anywhere;
     word-break: break-word;
-  }
-
-  .payload-richtext * {
-    max-width: 100%;
-    overflow-wrap: break-word;
-  }
-
-  .payload-richtext pre {
-    white-space: pre-wrap;
-    word-break: break-all;
   }
 }
 
