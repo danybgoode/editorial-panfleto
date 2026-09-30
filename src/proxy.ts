@@ -10,7 +10,9 @@ export function proxy(request: NextRequest) {
   if (!resolvePersonalizedReader(request.cookies.get(SESSION_COOKIE)?.value))
     return NextResponse.next()
 
-  return NextResponse.rewrite(new URL('/tu-edicion', request.url))
+  const response = NextResponse.rewrite(new URL('/tu-edicion', request.url))
+  response.headers.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate')
+  return response
 }
 
 export const config = {

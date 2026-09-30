@@ -7,6 +7,7 @@ import {
   sanitizeCommentHTML,
   type HNComment,
 } from '@/lib/comments/hackernews'
+import { parseDevToArticlePath } from '@/lib/comments/devto'
 import { extractLeadImage } from '@/lib/personalized/reader'
 import { slugify } from '@/utilities/editorial'
 
@@ -74,6 +75,37 @@ describe('Image extraction for personalized stories', () => {
   it('ignores tracking pixels in content HTML', () => {
     const content = '<p><img src="https://feedburner.com/pixel.gif" width="1" height="1" /><img src="https://example.com/real-hero.jpg" /></p>'
     expect(extractLeadImage(content)).toBe('https://example.com/real-hero.jpg')
+  })
+})
+
+describe('DEV.to URL parsing', () => {
+  it('parses DEV.to article URLs correctly', () => {
+    expect(parseDevToArticlePath('https://dev.to/username/article-slug')).toEqual({
+      slug: 'article-slug',
+      username: 'username',
+    })
+    expect(parseDevToArticlePath('https://dev.to/johndoe/my-post-123')).toEqual({
+      slug: 'my-post-123',
+      username: 'johndoe',
+    })
+  })
+
+  it('rejects reserved DEV.to paths', () => {
+    expect(parseDevToArticlePath('https://dev.to/about')).toBeNull()
+    expect(parseDevToArticlePath('https://dev.io/new')).toBeNull()
+    expect(parseDevToArticlePath('https://dev.to/faq')).toBeNull()
+  })
+
+  it('rejects non-DEV.to URLs', () => {
+    expect(parseDevToArticlePath('https://example.com/article')).toBeNull()
+    expect(parseDevToArticlePath('https://medium.com/@user/post')).toBeNull()
+  })
+
+  it('sanitizes DEV.to comment HTML securely', () => {
+    const raw = '<p>Comment <script>alert(1)</script><a href="https://example.com">link</a></p>'
+    const sanitized = sanitizeCommentHTML(raw)
+    expect(sanitized).not.toContain('<script>')
+    expect(sanitized).toContain('<a href="https://example.com" target="_blank" rel="noopener noreferrer">')
   })
 })
 

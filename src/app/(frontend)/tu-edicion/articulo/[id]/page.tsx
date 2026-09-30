@@ -5,13 +5,10 @@ import { notFound, redirect } from 'next/navigation'
 import React from 'react'
 
 import { ArticleComments } from '@/components/Editorial/ArticleComments'
+import { ArticleQuickActions } from '@/components/Editorial/ArticleQuickActions'
 import { PaywallRail } from '@/components/Editorial/PaywallRail'
 import { StoryCard, StorySignals } from '@/components/Editorial/StoryCard'
-import {
-  fetchHackerNewsThread,
-  getHackerNewsItemId,
-  type HNThread,
-} from '@/lib/comments/hackernews'
+import { commentSourceLabel, fetchArticleCommentThread } from '@/lib/comments/thread'
 import { MinifluxRequestError } from '@/lib/miniflux/client'
 import { loadPersonalizedEdition } from '@/lib/personalized/load'
 import type { EditionStory } from '@/lib/personalized/ranking'
@@ -21,6 +18,7 @@ import { SESSION_COOKIE } from '@/lib/personalized/session'
 import { formatEditorialDateTime } from '@/utilities/editorial'
 
 export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
 
 type PageProps = {
   params: Promise<{
@@ -57,17 +55,12 @@ async function loadArticleData(
     console.warn('[tu-edicion] could not load background edition for article context:', editionError)
   }
 
-  let commentsThread: HNThread | null = null
-  const hnId = getHackerNewsItemId(article.commentsUrl, article.url)
-  if (hnId) {
-    try {
-      commentsThread = await fetchHackerNewsThread(hnId)
-    } catch (e) {
-      console.warn('[tu-edicion] could not load comments:', e)
-    }
-  }
+  const comments = await fetchArticleCommentThread(article.commentsUrl, article.url).catch((error) => {
+    console.warn('[tu-edicion] could not load comments:', error)
+    return null
+  })
 
-  return { article, commentsThread, matchedStory, now, relatedStories }
+  return { article, comments, matchedStory, now, relatedStories }
 }
 
 export default async function PersonalizedArticlePage({ params }: PageProps) {
@@ -91,7 +84,13 @@ export default async function PersonalizedArticlePage({ params }: PageProps) {
     throw error
   }
 
-  const { article, commentsThread, matchedStory, now, relatedStories } = data
+  const { article, comments, matchedStory, now, relatedStories } = data
+  const commentsHref = comments
+    ? '#article-comments'
+    : article.commentsUrl || undefined
+  const sourceLabel = comments
+    ? commentSourceLabel(comments.source, comments.commentsUrl)
+    : article.feedTitle || 'la fuente'
 
   return (
     <article className="article-page">
@@ -139,14 +138,27 @@ export default async function PersonalizedArticlePage({ params }: PageProps) {
           >
             Fuente original ↗
           </a>
-          {article.commentsUrl && (
+          {article.permalinkUrl && (
             <a
               className="tu-edicion-source-link text-xs underline"
-              href={commentsThread ? '#article-comments' : article.commentsUrl}
-              rel={commentsThread ? undefined : 'noopener noreferrer'}
-              target={commentsThread ? undefined : '_blank'}
+              href={article.permalinkUrl}
+              rel="noopener noreferrer"
+              target="_blank"
+              title="Abrir el permalink del agregador"
             >
-              {commentsThread ? `Comentarios (${commentsThread.totalComments}) ↓` : 'Comentarios ↗'}
+              Visto en {article.feedTitle} ↗
+            </a>
+          )}
+          {commentsHref && (
+            <a
+              className="article-share__comments tu-edicion-source-link text-xs underline"
+              href={commentsHref}
+              rel={comments ? undefined : 'noopener noreferrer'}
+              target={comments ? undefined : '_blank'}
+            >
+              {comments
+                ? `Comentarios (${comments.thread.totalComments}) ↓`
+                : 'Comentarios ↗'}
             </a>
           )}
         </aside>
@@ -170,15 +182,15 @@ export default async function PersonalizedArticlePage({ params }: PageProps) {
             </div>
           )}
 
-          {/* Paywall rail told below the article, matching Miniflux */}
           <PaywallRail articleURL={article.url} />
 
-          {commentsThread && (
+          {comments && (
             <div id="article-comments">
               <ArticleComments
-                comments={commentsThread.children}
-                commentsUrl={article.commentsUrl || `https://news.ycombinator.com/item?id=${commentsThread.id}`}
-                totalCount={commentsThread.totalComments}
+                comments={comments.thread.children}
+                commentsUrl={comments.commentsUrl}
+                sourceLabel={sourceLabel}
+                totalCount={comments.thread.totalComments}
               />
             </div>
           )}
@@ -214,6 +226,8 @@ export default async function PersonalizedArticlePage({ params }: PageProps) {
           </aside>
         )}
       </div>
+
+      <ArticleQuickActions commentsHref={commentsHref} showComments={Boolean(commentsHref)} />
     </article>
   )
 }

@@ -4,6 +4,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { getPaywallBypassLinks } from '@/components/Editorial/PaywallRail'
 import { MinifluxRequestError } from '@/lib/miniflux/client'
 import {
+  extractCitedArticleUrl,
+  isAggregatorUrl,
+} from '@/lib/personalized/aggregator'
+import {
   fetchReaderArticle,
   isThinContent,
   normalizeReaderContent,
@@ -15,6 +19,41 @@ const TOKEN = 'TESTTOKENFORARTICLEVIEW000000000'
 afterEach(() => {
   vi.unstubAllEnvs()
   vi.unstubAllGlobals()
+})
+
+describe('Aggregator detection and URL extraction', () => {
+  it('detects Techmeme as an aggregator', () => {
+    expect(isAggregatorUrl('https://techmeme.com/240902/p2#a240902p2')).toBe(true)
+    expect(isAggregatorUrl('https://www.techmeme.com/240902/p2')).toBe(true)
+    expect(isAggregatorUrl('https://example.com/article')).toBe(false)
+  })
+
+  it('extracts the first cited article URL from Techmeme HTML', () => {
+    const techmemeHtml = `
+      <p>Apple released iOS 20 with new features.</p>
+      <a href="https://techcrunch.com/2026/09/29/apple-ios-20-features">Apple iOS 20 Features</a>
+      <a href="https://theverge.com/apple-ios-20-review">Review</a>
+      <a href="https://twitter.com/apple/status/123">Twitter</a>
+    `
+    const cited = extractCitedArticleUrl(techmemeHtml)
+    expect(cited).toBe('https://techcrunch.com/2026/09/29/apple-ios-20-features')
+  })
+
+  it('skips aggregator and social media links when extracting cited URL', () => {
+    const html = `
+      <a href="https://techmeme.com/link">Skip Techmeme</a>
+      <a href="https://twitter.com/user/status/123">Skip Twitter</a>
+      <a href="https://bit.ly/techmeme">Skip bit.ly to Techmeme</a>
+      <a href="https://real-article.com/story">Real Article</a>
+    `
+    const cited = extractCitedArticleUrl(html)
+    expect(cited).toBe('https://real-article.com/story')
+  })
+
+  it('returns undefined when no valid cited URL is found', () => {
+    const html = '<p>No links here</p>'
+    expect(extractCitedArticleUrl(html)).toBeUndefined()
+  })
 })
 
 describe('Paywall Bypass rail links', () => {
@@ -71,6 +110,54 @@ describe('normalizeReaderContent', () => {
     expect(out).not.toMatch(/<table[^>]*width=/i)
     expect(out).toContain('Hello world')
     expect(out).toContain('<td>cell</td>')
+  })
+
+  it('promotes lazy-loaded images and injects an enclosure hero when the body has none', () => {
+    const lazy = '<p>Daily cartoon</p><img data-src="https://media.newyorker.com/cartoon.jpg" alt="">'
+    expect(normalizeReaderContent(lazy)).toContain('src="https://media.newyorker.com/cartoon.jpg"')
+
+    const noImg = '<p>Caption without a bitmap in the body.</p>'
+    const withHero = normalizeReaderContent(noImg, {
+      leadImageUrl: 'https://media.newyorker.com/daily.jpg',
+    })
+    expect(withHero).toContain('article-reader-hero')
+    expect(withHero).toContain('https://media.newyorker.com/daily.jpg')
+  })
+
+  it('strips NYT and Techmeme reading chrome without dropping the story', () => {
+    const raw = `
+      <nav><a href="/live">Live Updates</a></nav>
+      <p>Advertisement</p>
+      <a>SKIP ADVERTISEMENT</a>
+      <p>You have a preview view of this article while we are checking your access. When we have confirmed access, the full article content will load.</p>
+      <p>Democrats in Congress Embrace a More Punitive Posture Toward Israel</p>
+      <p>Nearly every Democratic senator voted to advance a measure calling for a human rights report.</p>
+      <audio controls></audio>
+      <p>Listen · 6:41 min</p>
+      <a>Share full article</a>
+    `
+    const out = normalizeReaderContent(raw)
+    expect(out).toContain('Democrats in Congress Embrace')
+    expect(out).toContain('Nearly every Democratic senator')
+    expect(out).not.toMatch(/Advertisement/i)
+    expect(out).not.toMatch(/SKIP ADVERTISEMENT/i)
+    expect(out).not.toMatch(/Share full article/i)
+    expect(out).not.toMatch(/Listen · 6:41/i)
+    expect(out).not.toMatch(/preview view of this article/i)
+    expect(out).not.toMatch(/<audio/i)
+
+    const techmeme = `
+      <p>Apple released iOS 20.</p>
+      <ul>
+        <li><a href="https://techcrunch.com/a">A</a></li>
+        <li><a href="https://theverge.com/b">B</a></li>
+        <li><a href="https://arstechnica.com/c">C</a></li>
+        <li><a href="https://wired.com/d">D</a></li>
+      </ul>
+    `
+    const farm = normalizeReaderContent(techmeme, { dropLinkFarms: true })
+    expect(farm).toContain('Apple released iOS 20')
+    expect(farm).not.toContain('techcrunch.com')
   })
 
   it('leaves ordinary paragraphs unchanged', () => {

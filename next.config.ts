@@ -60,6 +60,16 @@ const nextConfig: NextConfig = {
     return webpackConfig
   },
   reactStrictMode: true,
+  async headers() {
+    return [
+      {
+        source: '/tu-edicion/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'private, no-store, max-age=0, must-revalidate' },
+        ],
+      },
+    ]
+  },
   redirects,
   turbopack: {
     root: path.resolve(dirname),

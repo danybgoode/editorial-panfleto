@@ -110,10 +110,12 @@ function CommentNode({
 export function ArticleComments({
   comments,
   commentsUrl,
+  sourceLabel = 'Hacker News',
   totalCount,
 }: {
   comments: HNComment[]
   commentsUrl?: string
+  sourceLabel?: string
   totalCount: number
 }) {
   const [forceCollapseTrigger, setForceCollapseTrigger] = useState(0)
@@ -133,7 +135,7 @@ export function ArticleComments({
               rel="noopener noreferrer"
               target="_blank"
             >
-              Ver en Hacker News ↗
+              Ver en {sourceLabel} ↗
             </a>
           )}
         </div>
@@ -149,7 +151,7 @@ export function ArticleComments({
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6 pb-2 border-b border-[var(--ep-rule)]">
         <div>
           <h2 className="text-xl font-bold tracking-tight text-[var(--ep-ink)] flex items-center gap-2">
-            <span>Comentarios de Hacker News</span>
+            <span>Comentarios de {sourceLabel}</span>
             <span className="text-sm font-normal text-[var(--ep-muted)]">
               ({totalCount})
             </span>
@@ -184,7 +186,7 @@ export function ArticleComments({
                 rel="noopener noreferrer"
                 target="_blank"
               >
-                Abrir en Hacker News ↗
+                Abrir en {sourceLabel} ↗
               </a>
             </>
           )}

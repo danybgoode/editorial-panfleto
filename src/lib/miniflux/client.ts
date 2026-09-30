@@ -7,6 +7,12 @@ export type MinifluxEntry = {
   comments_url?: string
   content?: string
   created_at?: string
+  enclosures?: Array<{
+    id?: number
+    mime_type?: string
+    size?: number
+    url: string
+  }>
   feed?: {
     category?: MinifluxCategory
     feed_url?: string

@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { after } from 'next/server'
 import React from 'react'
 
+import { RefreshEditionButton } from '@/components/Editorial/RefreshEditionButton'
 import { SectionHeading } from '@/components/Editorial/SectionHeading'
 import { formatAge, StoryCard } from '@/components/Editorial/StoryCard'
 import { MinifluxRequestError } from '@/lib/miniflux/client'
@@ -14,9 +15,10 @@ import { resolvePersonalizedReader } from '@/lib/personalized/resolver'
 import { SESSION_COOKIE } from '@/lib/personalized/session'
 import { formatEditorialDate, slugify } from '@/utilities/editorial'
 
-import { disconnectReader } from './actions'
+import { disconnectReader, refreshReaderEdition } from './actions'
 
 export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
 
 const SUPPORT_STORIES = 4
 
@@ -66,11 +68,16 @@ export default async function PersonalizedEditionPage() {
         <p>{formatEditorialDate(new Date(now).toISOString(), { weekday: 'long' })}</p>
         <h1>Tu edición</h1>
         {edition && (
-          <p>
-            Hecha con tus fuentes: {edition.storyCount} historias de las últimas 24 horas, arriba
-            las que publicaron varios de tus medios. Actualizada{' '}
-            {formatAge(new Date(builtAt).toISOString(), now)}.
-          </p>
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <p>
+              Hecha con tus fuentes: {edition.storyCount} historias de las últimas 24 horas, arriba
+              las que publicaron varios de tus medios. Actualizada{' '}
+              {formatAge(new Date(builtAt).toISOString(), now)}.
+            </p>
+            <form action={refreshReaderEdition}>
+              <RefreshEditionButton />
+            </form>
+          </div>
         )}
         <form action={disconnectReader}>
           <p>

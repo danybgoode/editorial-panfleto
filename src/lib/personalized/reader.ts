@@ -1,5 +1,16 @@
 import { type MinifluxEntry, MinifluxRequestError, minifluxFetchAs } from '../miniflux/client'
+import { extractCitedArticleUrl, isAggregatorUrl } from './aggregator'
+import {
+  extractLeadImage,
+  fetchOriginalArticleHtml,
+  injectLeadImage,
+  normalizeLayoutAttributes,
+  promoteLazyImages,
+  stripReaderChrome,
+} from './readerHtml'
 import { isPlausibleToken } from './session'
+
+export { extractLeadImage } from './readerHtml'
 
 // Reading AS a reader, with their own key. Every outcome that matters to them is split out: "the token is
 // wrong" tells them to replace it, so it must never be what an outage looks like (LEARNINGS 2026-09-16).
@@ -68,63 +79,6 @@ export type ReaderEntry = {
   url: string
 }
 
-export const extractLeadImage = (
-  content?: string,
-  enclosures?: Array<{ mime_type?: string; url?: string }>,
-): string | undefined => {
-  if (enclosures && enclosures.length > 0) {
-    for (const enc of enclosures) {
-      if (!enc.url) continue
-      const mime = (enc.mime_type || '').toLowerCase()
-      const url = enc.url.toLowerCase()
-      if (
-        mime.startsWith('image/') ||
-        url.endsWith('.jpg') ||
-        url.endsWith('.jpeg') ||
-        url.endsWith('.png') ||
-        url.endsWith('.webp') ||
-        url.endsWith('.avif') ||
-        url.endsWith('.gif')
-      ) {
-        return enc.url
-      }
-    }
-  }
-
-  if (content) {
-    const imgRegex = /<img\b[^>]*?\bsrc=["']([^"']+)["'][^>]*>/gi
-    let match: RegExpExecArray | null
-    while ((match = imgRegex.exec(content)) !== null) {
-      const src = match[1].trim()
-      if (!src.startsWith('http://') && !src.startsWith('https://')) continue
-
-      const lower = src.toLowerCase()
-      if (
-        lower.includes('1x1') ||
-        lower.includes('pixel') ||
-        lower.includes('tracking') ||
-        lower.includes('feedsportal') ||
-        lower.includes('feedburner') ||
-        lower.includes('gravatar.com') ||
-        lower.includes('badge') ||
-        lower.includes('share-button')
-      ) {
-        continue
-      }
-
-      const tagStr = match[0].toLowerCase()
-      const widthMatch = tagStr.match(/width=["']?(\d+)["']?/)
-      const heightMatch = tagStr.match(/height=["']?(\d+)["']?/)
-      if (widthMatch && parseInt(widthMatch[1], 10) <= 2) continue
-      if (heightMatch && parseInt(heightMatch[1], 10) <= 2) continue
-
-      return src
-    }
-  }
-
-  return undefined
-}
-
 export const ENTRIES_PAGE_LIMIT = 1000
 
 // One page of a reader's entries stored after `afterEntryId` and published after `publishedAfter` (unix
@@ -178,6 +132,7 @@ export type ReaderArticle = {
   feedTitle: string
   id: number
   isThin: boolean
+  permalinkUrl?: string
   publishedAt: string
   readingTime: number
   title: string
@@ -195,29 +150,16 @@ export const isThinContent = (content?: string): boolean => {
   return stripTags(content).length < THIN_CONTENT_THRESHOLD
 }
 
-const ATTR_QUOTED = `"[^"]*"|'[^']*'`
-
 // Strip layout-only attributes that make scraped HTML wider than the viewport.
 // Miniflux already sanitizes XSS; this is so width/nowrap/style cannot size the column.
-export const normalizeReaderContent = (html: string): string => {
-  if (!html) return ''
-
-  let out = html
-    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
-    .replace(/<link\b[^>]*>/gi, '')
-    .replace(new RegExp(`\\sstyle\\s*=\\s*(${ATTR_QUOTED})`, 'gi'), '')
-
-  out = out.replace(/<([a-z][\w:-]*)(\s[^>]*)?>/gi, (match, tag: string, attrs?: string) => {
-    if (!attrs) return match
-    if (tag.toLowerCase() === 'img') return match
-    const cleaned = attrs.replace(
-      new RegExp(`\\s(?:width|height)\\s*=\\s*(${ATTR_QUOTED}|[^\\s>]+)`, 'gi'),
-      '',
-    )
-    return `<${tag}${cleaned}>`
-  })
-
-  return out
+export const normalizeReaderContent = (
+  html: string,
+  { dropLinkFarms = false, leadImageUrl }: { dropLinkFarms?: boolean; leadImageUrl?: string } = {},
+): string => {
+  const promoted = promoteLazyImages(html)
+  const cleaned = stripReaderChrome(promoted, { dropLinkFarms })
+  const laidOut = normalizeLayoutAttributes(cleaned)
+  return injectLeadImage(laidOut, leadImageUrl)
 }
 
 export const fetchReaderArticle = async (
@@ -234,12 +176,27 @@ export const fetchReaderArticle = async (
     timeoutMs,
   })
 
+  const feedSiteUrl = entry.feed?.site_url || entry.feed?.feed_url
+  const aggregator = isAggregatorUrl(entry.url, feedSiteUrl)
+  const citedUrl = aggregator ? extractCitedArticleUrl(entry.content) : undefined
+
   let content = entry.content || ''
   let readingTime = entry.reading_time || 0
+  let usedOriginal = false
+
+  if (citedUrl) {
+    const original = await fetchOriginalArticleHtml(citedUrl, timeoutMs)
+    if (original && stripTags(original).length > stripTags(content).length) {
+      content = original
+      usedOriginal = true
+    }
+  }
+
   let isThin = isThinContent(content)
 
-  // If thin or explicitly requested, trigger Miniflux's autofetch + unwall fallback pipeline
-  if (isThin || options?.forceFetchOriginal) {
+  // If thin or explicitly requested, trigger Miniflux's autofetch + unwall fallback pipeline.
+  // Aggregator homepages are skipped: fetch-content would scrape Techmeme, not the cited story.
+  if ((isThin || options?.forceFetchOriginal) && !aggregator) {
     try {
       const scraped = await minifluxFetchAs<{ content?: string; reading_time?: number }>(
         token,
@@ -264,22 +221,29 @@ export const fetchReaderArticle = async (
     }
   }
 
+  isThin = isThinContent(content)
   const estimatedReadingTime =
     readingTime || Math.max(1, Math.round(stripTags(content).length / 1000))
+  const sourceUrl = citedUrl || entry.url
+  const leadImageUrl = extractLeadImage(content, entry.enclosures)
 
   return {
     author: entry.author || undefined,
     categoryTitle: entry.feed?.category?.title || entry.category?.title || 'Sin categoría',
     commentsUrl: entry.comments_url || undefined,
-    content: normalizeReaderContent(content),
-    feedSiteUrl: entry.feed?.site_url || entry.feed?.feed_url || undefined,
+    content: normalizeReaderContent(content, {
+      dropLinkFarms: aggregator && !usedOriginal,
+      leadImageUrl,
+    }),
+    feedSiteUrl,
     feedTitle: entry.feed?.title || '',
     id: entry.id,
     isThin,
+    permalinkUrl: citedUrl ? entry.url : undefined,
     publishedAt: entry.published_at || new Date().toISOString(),
     readingTime: estimatedReadingTime,
     title: entry.title,
-    url: entry.url,
+    url: sourceUrl,
   }
 }
 
