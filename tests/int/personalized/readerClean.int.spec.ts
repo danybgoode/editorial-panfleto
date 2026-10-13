@@ -65,6 +65,37 @@ describe('New York Times paywall and search-promo text', () => {
   })
 })
 
+describe('publisher metadata and promotions', () => {
+  it('removes duplicate El País header furniture and keeps the article', () => {
+    const out = normalizeReaderContent(`
+      <p>María Porcel</p>
+      <div>Los Ángeles - 12 oct 2026 - 23:07Actualizado: 12 oct 2026 - 23:32CEST</div>
+      <div>Compartir en WhatsappCompartir en Twitter</div>
+      <button>Desplegar Redes Sociales</button>
+      <aside>PUBLICIDAD</aside>
+      ${STORY}
+    `, { author: 'María Porcel' })
+    expect(out).toContain('Nearly every Democratic senator')
+    expect(out).not.toMatch(/María Porcel|Los Ángeles|Compartir|Redes Sociales|PUBLICIDAD/i)
+  })
+
+  it('removes the 9to5Mac Daily promo without losing the reported story', () => {
+    const out = normalizeReaderContent(`
+      <p>Listen to a recap of the top stories of the day from 9to5Mac. 9to5Mac Daily is available on iTunes and Apple’s Podcasts app, Stitcher, TuneIn, Google Play, or through our dedicated RSS feed for Overcast and other podcast players.</p>
+      <p>Sponsored by Backblaze: Backup you can rely on. Save 20% with code 9to5daily.</p>
+      <p>New episodes of 9to5Mac Daily are recorded every weekday. Subscribe to our podcast in Apple Podcast or your favourite podcast player to guarantee new episodes are delivered as soon as they’re available.</p>
+      ${STORY}
+    `)
+    expect(out).toContain('Nearly every Democratic senator')
+    expect(out).not.toMatch(/9to5Mac Daily|Backblaze|New episodes/i)
+  })
+
+  it('keeps a real article paragraph about advertising and podcast sponsorship', () => {
+    const html = '<p>PUBLICIDAD was printed on the billboards, and Backblaze sponsored the podcast investigation.</p>'
+    expect(normalizeReaderContent(html)).toBe(html)
+  })
+})
+
 describe('depth-aware removal', () => {
   it('removes a nested chrome div without unbalancing the tree', () => {
     const html = '<div class="a"><div class="ad"><div>Advertisement</div></div><p>Real paragraph that stays.</p></div>'

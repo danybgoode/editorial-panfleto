@@ -37,6 +37,34 @@ const rank = (entries: SlimEntry[], hnComments: Record<string, number> = {}) =>
   rankEdition({ entries, hnComments, now: NOW })
 
 describe('corroboration counts publishers, not feeds', () => {
+  it('opens parsed text and the HN discussion from separate entries without changing the cluster score', () => {
+    const discussion = entry({
+      commentsUrl: 'https://news.ycombinator.com/item?id=987',
+      contentLength: 5000,
+      readableLength: 140,
+      proseParagraphs: 0,
+      excerpt: 'A preview',
+      siteUrl: 'https://news.ycombinator.com',
+      title: 'A significant finding about browser rendering',
+      url: 'https://example.com/story',
+    })
+    const article = entry({
+      contentLength: 2300,
+      readableLength: 2100,
+      proseParagraphs: 8,
+      excerpt: 'The reported article.',
+      siteUrl: 'https://example.com',
+      title: discussion.title,
+      url: discussion.url,
+    })
+    const [story] = rank([discussion, article], { [String(discussion.id)]: 42 }).front
+    expect(story.id).toBe(article.id)
+    expect(story.excerpt).toBe('The reported article.')
+    expect(story.commentsUrl).toBe(discussion.commentsUrl)
+    expect(story.comments).toBe(42)
+    expect(story.sources).toEqual(['example.com', 'ycombinator.com'])
+    expect(story.score).toBeCloseTo(0.5 ** (1 / 6) * (1 + Math.log10(43) / 2) * 1.5)
+  })
   it('does not let two feeds from one publisher corroborate each other', () => {
     const bbcWorld = entry({
       feedTitle: 'BBC News - World',

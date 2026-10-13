@@ -9,6 +9,8 @@ import {
   FRESH_MS,
   FULL_MAX_AGE_MS,
   loadEdition,
+  rebuildEdition,
+  toSlimEntry,
   type EditionSource,
 } from '@/lib/personalized/edition'
 import { MinifluxRequestError } from '@/lib/miniflux/client'
@@ -98,6 +100,27 @@ describe("a reader's day is built once and reused (2.1)", () => {
 })
 
 describe('the edition refreshes incrementally (2.2)', () => {
+  it('keeps the old edition if a deliberate rebuild fails, then replaces it on success', async () => {
+    const store = createMemoryStore(() => NOW)
+    const source = sourceOf([entry(10, 'First edition')])
+    await loadEdition({ now: NOW, reader: readerOf(2), source, store })
+    const before = await store.get(editionKey(2))
+
+    source.fetchEntriesPage.mockRejectedValueOnce(new Error('upstream failed'))
+    await expect(rebuildEdition({ now: NOW + 1, source, store, userId: 2 })).rejects.toThrow('upstream failed')
+    expect(await store.get(editionKey(2))).toBe(before)
+
+    source.fetchEntriesPage.mockResolvedValueOnce([entry(11, 'New edition')])
+    expect(await rebuildEdition({ now: NOW + 2, source, store, userId: 2 })).toBe('updated')
+    expect((await store.get(editionKey(2))) === before).toBe(false)
+  })
+
+  it('uses cleaned article prose for a card excerpt', () => {
+    const slim = toSlimEntry(entry(1, 'Real story', {
+      content: '<aside>PUBLICIDAD</aside><p>Reported facts and context for readers.</p>',
+    }))
+    expect(slim.excerpt).toBe('Reported facts and context for readers.')
+  })
   it('serves the stale copy at once, then fetches only entries stored since the last build', async () => {
     const store = createMemoryStore(() => NOW)
     const source = sourceOf([entry(10, 'Historia vieja pero vigente')])

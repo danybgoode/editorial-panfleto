@@ -40,6 +40,7 @@ const attrOf = (tag: string, name: string): string | undefined => {
 // Whole-element matches: an element whose entire text is one of these is chrome.
 const EXACT_CHROME: RegExp[] = [
   /^advertisement$/i,
+  /^publicidad$/i,
   /^skip advertisement$/i,
   /^share full article$/i,
   /^share( this (article|story))?$/i,
@@ -47,11 +48,20 @@ const EXACT_CHROME: RegExp[] = [
   /^listen(\s*[·•.\-–—]\s*|\s+)\d+/i,
   /^(facebook|twitter|x|linkedin|whatsapp|email|reddit|pinterest|telegram|messenger|bluesky|flipboard)$/i,
   /^(copy link|print|save|comments?|copiar enlace|imprimir|guardar|compartir|comentarios)$/i,
+  /^desplegar redes sociales$/i,
+  /^(?:compartir en (?:whatsapp|twitter|facebook|x|telegram|linkedin)\s*){2,}$/i,
+  /^(?:[\p{L} .'-]+\s*[-–]\s*)?\d{1,2}\s+[\p{L}]+\s+20\d{2}\s*[-–]\s*\d{1,2}:\d{2}\s*(?:actualizado:\s*\d{1,2}\s+[\p{L}]+\s+20\d{2}\s*[-–]\s*\d{1,2}:\d{2}\s*[A-Z]{2,5})?$/iu,
   /^(share|tweet|post|compartir)( (on|en|via))? (facebook|twitter|x|linkedin|whatsapp|email|reddit|pinterest|telegram|messenger|bluesky)$/i,
   /^supported by$/i,
   /^continue reading the main story$/i,
   /^skip to (main )?content$/i,
   /^(subscribe|log in|sign in|sign up|suscríbete|iniciar sesión|inicia sesión)$/i,
+]
+
+const SOURCE_PROMO: RegExp[] = [
+  /^listen to a recap of the top stories of the day from 9to5mac\./i,
+  /^sponsored by backblaze:\s*backup you can rely on\./i,
+  /^new episodes of 9to5mac daily are recorded every weekday\./i,
 ]
 
 // Phrases a paywall or subscription wall injects. An element made of nothing but these (in any number, in
@@ -92,6 +102,7 @@ export const isChromeText = (raw: string): boolean => {
   const text = raw.replace(/\s+/g, ' ').trim()
   if (!text) return false
   if (PREVIEW_NOTICE.test(text)) return true
+  if (text.length <= 1200 && SOURCE_PROMO.some((pattern) => pattern.test(text))) return true
   if (text.length <= 280 && EXACT_CHROME.some((pattern) => pattern.test(text))) return true
   return isBoilerplateOnly(text)
 }
@@ -99,6 +110,15 @@ export const isChromeText = (raw: string): boolean => {
 // Headings that introduce a block of other stories, not part of this one.
 const RELATED_HEADING =
   /^(related( (content|articles?|stories|topics|coverage|links|reading|video))?|more (on this story|on this|from [\w .&'’-]{2,40}|stories|news|to read|about this)|top stories|read more|also read|you (might|may) also like|recommended( for you| reading)?|more coverage|see also|around the web|from around the web|most (read|popular|viewed)|trending|sponsored( content)?|más (sobre este tema|noticias|historias|leídas|en [\w .&'’-]{2,30})|te (puede|podría) interesar|temas relacionados|noticias relacionadas|artículos relacionados|contenido relacionado|lee (también|más)|leer más|sigue leyendo|lo más (leído|visto)|contenido patrocinado)$/i
+
+// The author belongs in the article header, not repeated above the first paragraph. Restrict this to
+// the opening markup and an exact metadata match; a later mention of the author is article text.
+export const stripDuplicateByline = (html: string, author?: string): string => {
+  if (!author?.trim()) return html
+  const escaped = author.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const byline = new RegExp(`<(p|span|div)\\b[^>]*>\\s*${escaped}\\s*<\\/\\1>`, 'gi')
+  return html.slice(0, 1600).replace(byline, '') + html.slice(1600)
+}
 
 // --- depth-aware element removal ------------------------------------------------------------------------------
 //
