@@ -8,6 +8,7 @@ import {
   injectLeadImage,
   normalizeLayoutAttributes,
   promoteLazyImages,
+  stripDuplicateByline,
   stripReaderChrome,
 } from './readerHtml'
 import { isPlausibleToken } from './session'
@@ -169,11 +170,11 @@ export const isThinAfterCleaning = (content?: string, dropLinkFarms = false): bo
 // Miniflux already sanitizes XSS; this is so width/nowrap/style cannot size the column.
 export const normalizeReaderContent = (
   html: string,
-  { dropLinkFarms = false, leadImageUrl }: { dropLinkFarms?: boolean; leadImageUrl?: string } = {},
+  { author, dropLinkFarms = false, leadImageUrl }: { author?: string; dropLinkFarms?: boolean; leadImageUrl?: string } = {},
 ): string => {
   const promoted = promoteLazyImages(html)
   const cleaned = stripReaderChrome(promoted, { dropLinkFarms })
-  const laidOut = normalizeLayoutAttributes(cleaned)
+  const laidOut = normalizeLayoutAttributes(stripDuplicateByline(cleaned, author))
   return injectLeadImage(laidOut, leadImageUrl)
 }
 
@@ -256,6 +257,7 @@ export const fetchReaderArticle = async (
     commentsUrl: entry.comments_url || undefined,
     content: enhanceReaderImages(
       normalizeReaderContent(content, {
+        author: entry.author,
         dropLinkFarms,
         leadImageUrl,
       }),

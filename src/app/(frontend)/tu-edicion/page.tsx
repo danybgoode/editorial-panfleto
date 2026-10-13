@@ -15,7 +15,7 @@ import { resolvePersonalizedReader } from '@/lib/personalized/resolver'
 import { SESSION_COOKIE } from '@/lib/personalized/session'
 import { formatEditorialDate, slugify } from '@/utilities/editorial'
 
-import { disconnectReader, refreshReaderEdition } from './actions'
+import { disconnectReader } from './actions'
 
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
@@ -74,9 +74,7 @@ export default async function PersonalizedEditionPage() {
               las que publicaron varios de tus medios. Actualizada{' '}
               {formatAge(new Date(builtAt).toISOString(), now)}.
             </p>
-            <form action={refreshReaderEdition}>
-              <RefreshEditionButton />
-            </form>
+            <RefreshEditionButton />
           </div>
         )}
         <form action={disconnectReader}>

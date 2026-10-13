@@ -60,12 +60,13 @@ async function loadArticleData(
     console.warn('[tu-edicion] could not load background edition for article context:', editionError)
   }
 
-  const comments = await fetchArticleCommentThread(article.commentsUrl, article.url).catch((error) => {
+  const discussionUrl = matchedStory?.commentsUrl || article.commentsUrl
+  const comments = await fetchArticleCommentThread(discussionUrl, article.url).catch((error) => {
     console.warn('[tu-edicion] could not load comments:', error)
     return null
   })
 
-  return { article, comments, matchedStory, now, relatedStories }
+  return { article, comments, discussionUrl, matchedStory, now, relatedStories }
 }
 
 export default async function PersonalizedArticlePage({ params }: PageProps) {
@@ -89,10 +90,10 @@ export default async function PersonalizedArticlePage({ params }: PageProps) {
     throw error
   }
 
-  const { article, comments, matchedStory, now, relatedStories } = data
+  const { article, comments, discussionUrl, matchedStory, now, relatedStories } = data
   const commentsHref = comments
     ? '#article-comments'
-    : article.commentsUrl || undefined
+    : discussionUrl || undefined
   const sourceLabel = comments
     ? commentSourceLabel(comments.source, comments.commentsUrl)
     : article.feedTitle || 'la fuente'

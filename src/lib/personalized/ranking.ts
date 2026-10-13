@@ -8,6 +8,9 @@ export type SlimEntry = {
   categoryTitle: string
   commentsUrl: string
   contentLength: number
+  // Measured after reader chrome is removed. Older test fixtures may omit these quality hints.
+  readableLength?: number
+  proseParagraphs?: number
   excerpt: string
   feedId: number
   feedTitle: string
@@ -162,6 +165,13 @@ export const hackerNewsItemId = (commentsUrl: string) => {
 
 type Story = EditionStory & { leadFeedTitle: string }
 
+const readingQuality = (entry: SlimEntry) => {
+  const length = entry.readableLength ?? entry.contentLength
+  const paragraphs = entry.proseParagraphs ?? 0
+  const tier = length >= 1000 && paragraphs >= 2 ? 2 : length >= 400 ? 1 : 0
+  return tier * 100_000 + Math.min(paragraphs, 12) * 1000 + Math.min(length, 12_000)
+}
+
 // A future date (a publisher's clock ahead) counts as brand new rather than scoring above 1, and an unparseable
 // one as infinitely old, so neither can pin a story to the top of the page.
 const ageHours = (publishedAt: string, now: number) => {
@@ -247,23 +257,31 @@ export const rankEdition = ({
         ? entry
         : best,
     )
-    const imageUrl = lead.imageUrl || group.find((e) => Boolean(e.imageUrl))?.imageUrl
+    // Keep the v1 representative for category and feed quotas. Select the entry the reader opens
+    // independently, so a parsed body wins over a long feed preview without moving the story.
+    const reading = group.reduce((best, entry) =>
+      readingQuality(entry) > readingQuality(best) ? entry : best,
+    lead)
+    const discussion = group
+      .filter((entry) => hackerNewsItemId(entry.commentsUrl))
+      .sort((a, b) => (hnComments[String(b.id)] || 0) - (hnComments[String(a.id)] || 0))[0]
+    const imageUrl = reading.imageUrl || lead.imageUrl || group.find((e) => Boolean(e.imageUrl))?.imageUrl
 
     return {
       category: lead.categoryTitle,
       comments,
-      commentsUrl: lead.commentsUrl,
-      excerpt: lead.excerpt,
-      feedTitle: lead.feedTitle,
-      id: lead.id,
+      commentsUrl: discussion?.commentsUrl || reading.commentsUrl || lead.commentsUrl,
+      excerpt: reading.excerpt,
+      feedTitle: reading.feedTitle,
+      id: reading.id,
       imageUrl,
       leadFeedTitle: lead.feedTitle,
-      publishedAt: lead.publishedAt,
-      readingTime: lead.readingTime,
+      publishedAt: reading.publishedAt,
+      readingTime: reading.readingTime,
       score: recency * commentWeight * corroboration,
       sources: publishers,
-      title: decodeEntities(lead.title),
-      url: lead.url,
+      title: decodeEntities(reading.title),
+      url: reading.url,
     }
   })
 

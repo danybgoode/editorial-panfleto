@@ -4,8 +4,9 @@ import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 
-import { forgetEdition } from '@/lib/personalized/edition'
+import { forgetEdition, ReaderTokenRejected, rebuildEdition } from '@/lib/personalized/edition'
 import { identifyReader } from '@/lib/personalized/reader'
+import { readerEditionSource } from '@/lib/personalized/load'
 import {
   getUsableSessionSecret,
   isPersonalizedEditionEnabled,
@@ -62,15 +63,32 @@ export async function disconnectReader() {
   redirect('/')
 }
 
-export async function refreshReaderEdition() {
+export type RefreshEditionState = { status: 'idle' | 'updated' | 'unchanged' | 'busy' | 'error' }
+
+export async function refreshReaderEdition(
+  _previous: RefreshEditionState,
+): Promise<RefreshEditionState> {
   if (!isPersonalizedEditionEnabled()) redirect('/')
 
   const cookieStore = await cookies()
   const reader = resolvePersonalizedReader(cookieStore.get(SESSION_COOKIE)?.value)
   if (!reader) redirect('/tu-edicion/conectar')
 
-  await forgetEdition(getEditionStore(), reader.userId).catch(() => undefined)
-  revalidatePath('/tu-edicion')
-  revalidatePath('/')
-  redirect('/tu-edicion')
+  try {
+    const status = await rebuildEdition({
+      now: Date.now(),
+      source: readerEditionSource(reader.key),
+      store: getEditionStore(),
+      userId: reader.userId,
+    })
+    if (status !== 'busy') {
+      revalidatePath('/tu-edicion')
+      revalidatePath('/')
+    }
+    return { status }
+  } catch (error) {
+    if (error instanceof ReaderTokenRejected) redirect('/tu-edicion/salir')
+    console.error('[tu-edicion] manual refresh failed', { message: String(error) })
+    return { status: 'error' }
+  }
 }

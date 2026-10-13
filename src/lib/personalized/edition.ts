@@ -1,6 +1,7 @@
 import { gunzipSync, gzipSync } from 'node:zlib'
 
 import { hackerNewsItemId, makeExcerpt, rankEdition, type Edition, type SlimEntry } from './ranking'
+import { stripReaderChrome } from './readerHtml'
 import {
   ENTRIES_PAGE_LIMIT,
   extractLeadImage,
@@ -54,7 +55,7 @@ export type StoredEdition = {
   hnComments: Record<string, number>
   newestEntryId: number
   userId: number
-  v: 1
+  v: 2
 }
 
 export type EditionResult = {
@@ -82,7 +83,7 @@ export class ReaderTokenRejected extends Error {
 // The reader's Miniflux user ID is the identity; it came from /v1/me and sits inside the sealed cookie.
 // The environment keeps Preview's editions out of Production's, which share one Upstash database.
 export const editionKey = (userId: number, environment = process.env.VERCEL_ENV || 'development') =>
-  `pe:v1:${environment}:edition:${userId}`
+  `pe:v2:${environment}:edition:${userId}`
 
 const lockKey = (userId: number, environment?: string) => `${editionKey(userId, environment)}:lock`
 
@@ -100,27 +101,36 @@ const decode = (value: null | string): StoredEdition | null => {
     const stored = JSON.parse(
       gunzipSync(Buffer.from(value, 'base64')).toString('utf8'),
     ) as StoredEdition
-    return stored.v === 1 ? stored : null
+    return stored.v === 2 ? stored : null
   } catch {
     return null
   }
 }
 
-export const toSlimEntry = (entry: ReaderEntry): SlimEntry => ({
+export const toSlimEntry = (entry: ReaderEntry): SlimEntry => {
+  const content = entry.content || ''
+  const readable = stripReaderChrome(content)
+  const paragraphs = [...readable.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi)].filter(
+    ([, body]) => body.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().length >= 80,
+  ).length
+  return {
   categoryTitle: entry.feed.category?.title || 'Sin categoría',
   commentsUrl: entry.comments_url || '',
-  contentLength: (entry.content || '').length,
-  excerpt: makeExcerpt(entry.content || ''),
+  contentLength: content.length,
+  readableLength: readable.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().length,
+  proseParagraphs: paragraphs,
+  excerpt: makeExcerpt(readable),
   feedId: entry.feed_id,
   feedTitle: entry.feed.title || '',
   id: entry.id,
-  imageUrl: extractLeadImage(entry.content, entry.enclosures),
+  imageUrl: extractLeadImage(content, entry.enclosures),
   publishedAt: entry.published_at,
   readingTime: entry.reading_time || 0,
   siteUrl: entry.feed.site_url || entry.feed.feed_url || '',
   title: entry.title,
   url: entry.url,
-})
+  }
+}
 
 const fetchSince = async (source: EditionSource, afterEntryId: number, now: number) => {
   const publishedAfter = Math.floor((now - DAY_MS) / 1000)
@@ -188,7 +198,7 @@ const assemble = ({
   hnComments,
   newestEntryId: entries.reduce((newest, entry) => Math.max(newest, entry.id), 0),
   userId,
-  v: 1,
+  v: 2,
 })
 
 export const buildFullEdition = async (userId: number, source: EditionSource, now: number) => {
@@ -296,6 +306,40 @@ export const loadEdition = async ({
   }
 
   return { builtAt: stored.builtAt, edition: stored.edition, refresh, state: 'stale' }
+}
+
+// A deliberate refresh builds beside the old edition and replaces it only after every fetch succeeds.
+// The lock also prevents a background stale refresh from overwriting the reader's newer result.
+export const rebuildEdition = async ({
+  environment,
+  now,
+  source,
+  store,
+  userId,
+}: {
+  environment?: string
+  now: number
+  source: EditionSource
+  store: EditionStore
+  userId: number
+}): Promise<'busy' | 'unchanged' | 'updated'> => {
+  const identity = await source.identify()
+  if (identity.kind === 'unavailable') throw new ReaderUnavailable()
+  if (identity.kind !== 'ok' || identity.userId !== userId) throw new ReaderTokenRejected()
+
+  const key = editionKey(userId, environment)
+  const lock = lockKey(userId, environment)
+  const owner = await store.acquireLock(lock, LOCK_TTL_SECONDS)
+  if (!owner) return 'busy'
+
+  try {
+    const previous = decode(await store.get(key))
+    const next = await buildFullEdition(userId, source, now)
+    await store.set(key, encode(next), STORE_TTL_SECONDS)
+    return previous?.newestEntryId === next.newestEntryId ? 'unchanged' : 'updated'
+  } finally {
+    await store.releaseLock(lock, owner).catch(() => undefined)
+  }
 }
 
 export const forgetEdition = (store: EditionStore, userId: number, environment?: string) =>
