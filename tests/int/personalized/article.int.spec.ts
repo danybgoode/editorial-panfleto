@@ -75,6 +75,10 @@ describe('Paywall Bypass rail links', () => {
         url: 'https://unwall.app/www.theguardian.com/world/2026/sep/17/example-story',
       },
       {
+        name: 'WallHop',
+        url: 'https://wallhop.io/https://www.theguardian.com/world/2026/sep/17/example-story',
+      },
+      {
         name: 'RemovePaywall',
         url: 'https://www.removepaywall.com/search?url=https%3A%2F%2Fwww.theguardian.com%2Fworld%2F2026%2Fsep%2F17%2Fexample-story',
       },
