@@ -18,6 +18,10 @@ export function getPaywallBypassLinks(articleURL: string) {
       url: `https://unwall.app/${unwallSlug}`,
     },
     {
+      name: 'WallHop',
+      url: `https://wallhop.io/${safeURL}`,
+    },
+    {
       name: 'RemovePaywall',
       url: `https://www.removepaywall.com/search?url=${encodeURIComponent(safeURL)}`,
     },
