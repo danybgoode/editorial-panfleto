@@ -16,6 +16,7 @@ import { Sections } from './collections/Sections'
 import { Tags } from './collections/Tags'
 import { Tasks } from './collections/Tasks'
 import { Users } from './collections/Users'
+import { articlesEndpoints } from './endpoints/articles'
 import { minifluxEndpoints } from './endpoints/miniflux'
 import { trendingEndpoints } from './endpoints/trending'
 import { Footer } from './Footer/config'
@@ -135,7 +136,7 @@ export default buildConfig({
   }),
   collections: [Users, Media, Articles, Tasks, Authors, Sections, Tags, Issues, Pages, MinifluxMappings],
   cors: [getServerSideURL()].filter(Boolean),
-  endpoints: [...minifluxEndpoints, ...trendingEndpoints],
+  endpoints: [...articlesEndpoints, ...minifluxEndpoints, ...trendingEndpoints],
   globals: [Header, Footer],
   plugins: [
     ...plugins,

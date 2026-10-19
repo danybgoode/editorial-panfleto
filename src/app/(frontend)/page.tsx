@@ -116,15 +116,15 @@ export default async function HomePage() {
         },
       },
     }),
-    getTrendingArticles({ payload, limit: 4 }).catch(() => []),
+    getTrendingArticles({ payload, limit: 5 }).catch(() => []),
   ])
 
   const lead = (featured.docs[0] || latest.docs[0]) as Article | undefined
   const latestWithoutLead = latest.docs.filter((article) => article.id !== lead?.id) as Article[]
-  const supportStories = latestWithoutLead.slice(0, 4)
-  const latestStream = latestWithoutLead.slice(4, 10)
+  const supportStories = latestWithoutLead.slice(0, 3)
+  const latestStream = latestWithoutLead.slice(3, 9)
   const featureStory = feature.docs.find((article) => article.id !== lead?.id) as Article | undefined
-  const trendingStories = trending.filter((article) => article.id !== lead?.id).slice(0, 4)
+  const trendingStories = trending.filter((article) => article.id !== lead?.id).slice(0, 5)
 
   const sectionModules = await Promise.all(
     sections.docs.slice(0, 4).map(async (section) => {
@@ -170,6 +170,7 @@ export default async function HomePage() {
 
       {lead ? (
         <section aria-label="Historia principal" className="lead-package ep-container">
+          {/* Col 1 — Lead story */}
           <ArticleCard
             article={lead}
             imageSize="medium"
@@ -177,11 +178,32 @@ export default async function HomePage() {
             showSummary
             variant="lead"
           />
+
+          {/* Col 2 — Support stories */}
           <div className="lead-package__support">
             {supportStories.map((article) => (
               <ArticleCard article={article} key={article.id} showSummary={false} />
             ))}
           </div>
+
+          {/* Col 3 — Trending rail (desktop only) */}
+          {trendingStories.length > 0 && (
+            <aside className="lead-package__trending" aria-label="Más leído">
+              <h2 className="lead-package__trending-title">Más leído</h2>
+              <ol className="trending-rail" role="list">
+                {trendingStories.map((article, i) => (
+                  <li className="trending-rail__item" key={article.id}>
+                    <span className="trending-rail__num" aria-hidden="true">
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
+                    <Link className="trending-rail__link" href={getArticleHref(article)}>
+                      {article.headline}
+                    </Link>
+                  </li>
+                ))}
+              </ol>
+            </aside>
+          )}
         </section>
       ) : (
         <section className="empty-state ep-container">
@@ -195,17 +217,6 @@ export default async function HomePage() {
           <SectionHeading eyebrow="Cronología">Últimos artículos</SectionHeading>
           <div className="home-river__list">
             {latestStream.map((article) => (
-              <ArticleCard article={article} key={article.id} variant="stream" />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {trendingStories.length > 0 && (
-        <section className="home-river ep-container">
-          <SectionHeading eyebrow="Lecturas">Más leído ahora</SectionHeading>
-          <div className="home-river__list">
-            {trendingStories.map((article) => (
               <ArticleCard article={article} key={article.id} variant="stream" />
             ))}
           </div>
@@ -249,9 +260,14 @@ export default async function HomePage() {
                 <SectionHeading>
                   <Link href={getSectionHref(section)}>{section.name}</Link>
                 </SectionHeading>
-                <div>
-                  {articles.map((article) => (
-                    <ArticleCard article={article} key={article.id} showSummary={false} />
+                <div className="section-module__list">
+                  {articles.map((article, idx) => (
+                    <ArticleCard
+                      article={article}
+                      key={article.id}
+                      showSummary={false}
+                      showImage={idx === 0}
+                    />
                   ))}
                 </div>
               </div>

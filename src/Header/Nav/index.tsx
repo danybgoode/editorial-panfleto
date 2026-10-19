@@ -36,10 +36,16 @@ export const HeaderNav: React.FC<{
     </>
   )
 
+  const sourcesLink = (
+    <Link className="site-nav__sources" href="/sources" onClick={() => setOpen(false)}>
+      Fuentes
+    </Link>
+  )
+
   return (
     <div className="site-nav-wrap">
       <nav aria-label="Secciones principales" className="site-nav ep-container">
-        <div className="site-nav__links">{nav}</div>
+        <div className="site-nav__links">{nav}{sourcesLink}</div>
         <div className="site-nav__tools">
           {showEditionLink && (
             <Link className="site-nav__edition" href={EDITION_HREF} prefetch={false}>
@@ -75,6 +81,9 @@ export const HeaderNav: React.FC<{
           )}
           <Link href={READER_HREF} onClick={() => setOpen(false)} prefetch={false}>
             Mi Lector
+          </Link>
+          <Link href="/sources" onClick={() => setOpen(false)}>
+            Fuentes
           </Link>
           <Link href="/search" onClick={() => setOpen(false)}>
             Buscar

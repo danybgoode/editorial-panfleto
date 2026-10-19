@@ -10,6 +10,7 @@ import {
   getArticleHref,
   getSectionHref,
   getSectionName,
+  slugify,
 } from '@/utilities/editorial'
 import { cn } from '@/utilities/ui'
 
@@ -39,6 +40,8 @@ export function ArticleCard({
   const image = typeof article.featuredImage === 'object' ? article.featuredImage : null
   const byline = getArticleAuthors(article)
   const isOpinion = article.articleType === 'opinion' || article.articleType === 'editorial'
+  const sourceTitle = (article as Article & { meta?: { minifluxSourceTitle?: string } }).meta?.minifluxSourceTitle
+  const sourceHref = sourceTitle ? `/sources/${slugify(sourceTitle)}` : null
 
   return (
     <article
@@ -89,6 +92,15 @@ export function ArticleCard({
           {byline && <span>Por {byline}</span>}
           {article.publishedAt && (
             <time dateTime={article.publishedAt}>{formatEditorialDate(article.publishedAt)}</time>
+          )}
+          {sourceHref && sourceTitle && (
+            <Link
+              className="editorial-source-link"
+              href={sourceHref}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {sourceTitle}
+            </Link>
           )}
         </div>
       </div>

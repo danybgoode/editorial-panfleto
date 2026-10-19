@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation'
 import React from 'react'
 
 import { ArticleCard } from '@/components/Editorial/ArticleCard'
+import { InfiniteArticleList } from '@/components/Editorial/InfiniteArticleList'
 import { SectionHeading } from '@/components/Editorial/SectionHeading'
 import { StoryCard } from '@/components/Editorial/StoryCard'
 import { loadPersonalizedEdition } from '@/lib/personalized/load'
@@ -18,12 +19,11 @@ import Link from 'next/link'
 
 export const revalidate = 600
 
+const INITIAL_LIMIT = 12
+
 type Args = {
   params: Promise<{
     slug?: string
-  }>
-  searchParams: Promise<{
-    page?: string
   }>
 }
 
@@ -158,11 +158,6 @@ export default async function SectionPage({ params, searchParams }: Args) {
     }
   }
 
-  const { page = '1' } = await searchParams
-  const pageNumber = Number(page)
-
-  if (!Number.isInteger(pageNumber) || pageNumber < 1) notFound()
-
   const payload = await getPayload({ config: configPromise })
   const sectionResult = await payload.find({
     collection: 'sections',
@@ -184,9 +179,9 @@ export default async function SectionPage({ params, searchParams }: Args) {
     payload.find({
       collection: 'articles',
       depth: 2,
-      limit: 12,
+      limit: INITIAL_LIMIT + 1,
       overrideAccess: false,
-      page: pageNumber,
+      pagination: false,
       select: articleSelect,
       sort: '-publishedAt',
       where: {
@@ -206,11 +201,15 @@ export default async function SectionPage({ params, searchParams }: Args) {
     }),
   ])
 
-  const [lead, ...rest] = articles.docs as Article[]
-  const middleStories =
-    pageNumber === 1 ? rest.slice(0, 3) : (articles.docs as Article[]).slice(0, 3)
-  const riverStories = pageNumber === 1 ? rest.slice(3) : (articles.docs as Article[]).slice(3)
+  const hasMore = articles.docs.length > INITIAL_LIMIT
+  const allDocs = (hasMore ? articles.docs.slice(0, INITIAL_LIMIT) : articles.docs) as Article[]
+  const [lead, ...rest] = allDocs
+  const middleStories = rest.slice(0, 3)
+  const riverStories = rest.slice(3)
   const latestStories = (latest.docs as Article[]).filter((article) => article.id !== lead?.id)
+
+  const lastArticle = allDocs[allDocs.length - 1]
+  const initialCursor = hasMore && lastArticle?.publishedAt ? lastArticle.publishedAt : null
 
   return (
     <div className="section-page ep-container">
@@ -221,34 +220,34 @@ export default async function SectionPage({ params, searchParams }: Args) {
 
       {lead ? (
         <>
-          {pageNumber === 1 && (
-            <section aria-label="Portada de sección" className="section-front">
-              <ArticleCard article={lead} imageSize="medium" priority showSummary variant="lead" />
-              <div className="section-front__stack">
-                {middleStories.map((article) => (
+          <section aria-label="Portada de sección" className="section-front">
+            <ArticleCard article={lead} imageSize="medium" priority showSummary variant="lead" />
+            <div className="section-front__stack">
+              {middleStories.map((article) => (
+                <ArticleCard
+                  article={article}
+                  key={article.id}
+                  showImage={false}
+                  showSummary
+                />
+              ))}
+            </div>
+            <aside aria-label="Últimas noticias" className="news-rail">
+              <h2>Últimas noticias</h2>
+              <div>
+                {latestStories.slice(0, 5).map((article) => (
                   <ArticleCard
                     article={article}
+                    imageSize="thumbnail"
                     key={article.id}
-                    showImage={false}
-                    showSummary
+                    showSummary={false}
                   />
                 ))}
               </div>
-              <aside aria-label="Últimas noticias" className="news-rail">
-                <h2>Últimas noticias</h2>
-                <div>
-                  {latestStories.slice(0, 5).map((article) => (
-                    <ArticleCard
-                      article={article}
-                      imageSize="thumbnail"
-                      key={article.id}
-                      showSummary={false}
-                    />
-                  ))}
-                </div>
-              </aside>
-            </section>
-          )}
+            </aside>
+          </section>
+
+          {/* SSR river articles */}
           {riverStories.length > 0 && (
             <div className="archive-list section-river">
               {riverStories.map((article) => (
@@ -256,26 +255,22 @@ export default async function SectionPage({ params, searchParams }: Args) {
               ))}
             </div>
           )}
+
+          {/* Infinite scroll — older articles */}
+          {hasMore && (
+            <InfiniteArticleList
+              initialArticles={[]}
+              initialCursor={initialCursor}
+              sectionSlug={section.slug ?? ''}
+              limit={INITIAL_LIMIT}
+            />
+          )}
         </>
       ) : (
         <div className="empty-state">
           <h1>{section.name}</h1>
           <p>No hay artículos publicados en esta sección todavía.</p>
         </div>
-      )}
-
-      {articles.totalPages > 1 && (
-        <nav aria-label="Paginación" className="text-pagination">
-          {articles.hasPrevPage && (
-            <Link href={`${getSectionHref(section)}?page=${pageNumber - 1}`}>Anterior</Link>
-          )}
-          <span>
-            Página {articles.page} de {articles.totalPages}
-          </span>
-          {articles.hasNextPage && (
-            <Link href={`${getSectionHref(section)}?page=${pageNumber + 1}`}>Siguiente</Link>
-          )}
-        </nav>
       )}
     </div>
   )
