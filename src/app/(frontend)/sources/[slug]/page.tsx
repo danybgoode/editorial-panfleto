@@ -19,11 +19,18 @@ type Args = {
 
 const INITIAL_LIMIT = 12
 
+function getDocSourceTitle(doc: Article): string | null {
+  return (
+    doc.meta?.minifluxSourceTitle ??
+    (doc as unknown as { minifluxSourceTitle?: string | null }).minifluxSourceTitle ??
+    null
+  )
+}
+
 /**
  * Resolve the raw source title from a slug.
  * We fetch all articles with no select/where to avoid Payload named-tab query
  * issues, then filter in-memory.
- * Payload flattens named-tab fields in returned docs (e.g. doc.minifluxSourceTitle).
  */
 async function resolveSourceTitle(
   payload: Awaited<ReturnType<typeof getPayload>>,
@@ -40,7 +47,7 @@ async function resolveSourceTitle(
   const titles = [
     ...new Set(
       sample.docs
-        .map((d) => d.minifluxSourceTitle ?? null)
+        .map((d) => getDocSourceTitle(d))
         .filter((t): t is string => Boolean(t)),
     ),
   ]
@@ -66,7 +73,7 @@ export default async function SourcePage({ params }: Args) {
   })
 
   const filtered = allArticles.docs.filter(
-    (d) => d.minifluxSourceTitle === sourceTitle,
+    (d) => getDocSourceTitle(d) === sourceTitle,
   ) as Article[]
 
   const totalDocs = filtered.length

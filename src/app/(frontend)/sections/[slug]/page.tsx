@@ -61,7 +61,7 @@ export async function generateStaticParams() {
   return sections.docs.filter((s) => s.slug?.toLowerCase() !== 'pruebas').map(({ slug }) => ({ slug }))
 }
 
-export default async function SectionPage({ params, searchParams }: Args) {
+export default async function SectionPage({ params }: Args) {
   const { slug = '' } = await params
   const decodedSlug = decodeURIComponent(slug).toLowerCase()
 

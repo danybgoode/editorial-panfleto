@@ -1,4 +1,4 @@
-import type { Endpoint } from 'payload'
+import type { Endpoint, Where } from 'payload'
 
 import { slugify } from '../utilities/editorial'
 
@@ -45,7 +45,7 @@ export const articlesEndpoints: Endpoint[] = [
         const rawLimit = Number(url.searchParams.get('limit') ?? '12')
         const limit = Math.max(1, Math.min(rawLimit, 24))
 
-        const where: Record<string, unknown>[] = []
+        const where: Where[] = []
 
         // Cursor: only articles published before the cursor timestamp
         if (before) {
@@ -81,10 +81,13 @@ export const articlesEndpoints: Endpoint[] = [
             overrideAccess: false,
             pagination: false,
           })
+          const getDocSourceTitle = (d: any): string | null =>
+            d.meta?.minifluxSourceTitle ?? d.minifluxSourceTitle ?? null
+
           const matched = [
             ...new Set(
               titlesSample.docs
-                .map((d) => d.minifluxSourceTitle ?? null)
+                .map((d) => getDocSourceTitle(d))
                 .filter((t): t is string => Boolean(t)),
             ),
           ].find((t) => slugify(t) === sourceSlug)
@@ -107,13 +110,14 @@ export const articlesEndpoints: Endpoint[] = [
           pagination: false,
           ...(sourceTitle ? {} : { select: articleSelect }),
           sort: '-publishedAt',
-          where: where.length > 0 ? { and: where } : {},
+          where: where.length > 0 ? { and: where } : undefined,
         })
 
         let docs = result.docs
         if (sourceTitle) {
-          // Filter by source title using the flat field (Payload flattens named-tab fields)
-          docs = docs.filter((d) => d.minifluxSourceTitle === sourceTitle)
+          const getDocSourceTitle = (d: any): string | null =>
+            d.meta?.minifluxSourceTitle ?? d.minifluxSourceTitle ?? null
+          docs = docs.filter((d) => getDocSourceTitle(d) === sourceTitle)
         }
 
         const hasMore = docs.length > limit

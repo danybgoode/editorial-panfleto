@@ -9,6 +9,10 @@ import { getPayload } from 'payload'
 
 export const revalidate = 600
 
+function getDocSourceTitle(doc: { meta?: { minifluxSourceTitle?: string | null }; minifluxSourceTitle?: string | null }): string | null {
+  return doc.meta?.minifluxSourceTitle ?? doc.minifluxSourceTitle ?? null
+}
+
 export default async function SourcesPage() {
   const payload = await getPayload({ config: configPromise })
 
@@ -26,7 +30,7 @@ export default async function SourcesPage() {
   // Build a map of sourceTitle → { count, lastPublishedAt }
   const sourceMap = new Map<string, { count: number; lastPublishedAt: string }>()
   for (const doc of sample.docs) {
-    const title = doc.minifluxSourceTitle ?? null
+    const title = getDocSourceTitle(doc)
     if (!title) continue
     const existing = sourceMap.get(title)
     if (existing) {
