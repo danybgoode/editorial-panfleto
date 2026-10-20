@@ -583,6 +583,7 @@
 
 .lead-package__support,
 .opinion-module__grid,
+.section-modules,
 .article-related__grid {
   display: grid;
   gap: 1rem;
@@ -869,7 +870,10 @@
   min-width: 0;
 }
 
-/* Remove the old section-module inner div rule (replaced by section-module__list) */
+.section-module > div:last-child {
+  display: grid;
+  gap: 1rem;
+}
 
 .archive-header {
   display: grid;
@@ -1698,12 +1702,13 @@
 
 /* Large desktop (64rem+): 3-col lead with trending rail */
 @media (width >= 64rem) {
-  .lead-package {
+  /* Only a package that carries the trending rail gets a third column */
+  .lead-package:has(> .lead-package__trending) {
     grid-template-columns: minmax(0, 1.25fr) minmax(14rem, 0.65fr) minmax(13rem, 0.58fr);
     align-items: start;
   }
 
-  .lead-package__support {
+  .lead-package:has(> .lead-package__trending) .lead-package__support {
     border-inline: 1px solid var(--ep-rule);
     padding-inline: 1.25rem;
   }
