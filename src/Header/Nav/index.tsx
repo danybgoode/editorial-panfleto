@@ -15,6 +15,8 @@ import { ThemeSelector } from '@/providers/Theme/ThemeSelector'
 const EDITION_HREF = '/tu-edicion/conectar'
 // Link to the reader (panfleto-reader)
 const READER_HREF = 'https://app.panfleto.win/feeds'
+// The reader's own subscriptions; like the edition link, it sends a visitor without a session to connect.
+const SOURCES_HREF = '/tu-edicion/fuentes'
 
 export const HeaderNav: React.FC<{
   data: HeaderType
@@ -36,8 +38,13 @@ export const HeaderNav: React.FC<{
     </>
   )
 
-  const sourcesLink = (
-    <Link className="site-nav__sources" href="/sources" onClick={() => setOpen(false)}>
+  const sourcesLink = showEditionLink && (
+    <Link
+      className="site-nav__sources"
+      href={SOURCES_HREF}
+      onClick={() => setOpen(false)}
+      prefetch={false}
+    >
       Fuentes
     </Link>
   )
@@ -82,9 +89,7 @@ export const HeaderNav: React.FC<{
           <Link href={READER_HREF} onClick={() => setOpen(false)} prefetch={false}>
             Mi Lector
           </Link>
-          <Link href="/sources" onClick={() => setOpen(false)}>
-            Fuentes
-          </Link>
+          {sourcesLink}
           <Link href="/search" onClick={() => setOpen(false)}>
             Buscar
           </Link>

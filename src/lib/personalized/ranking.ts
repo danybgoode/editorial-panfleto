@@ -28,12 +28,16 @@ export type EditionStory = {
   comments: number
   commentsUrl: string
   excerpt: string
+  // The feed the reader opens. Optional: editions stored before it existed lack it until their next rebuild.
+  feedId?: number
   feedTitle: string
   id?: number
   imageUrl?: string
   publishedAt: string
   readingTime: number
   score: number
+  // One feed per publisher, so each source named on the story can link to its own page.
+  sourceFeeds?: Array<{ feedId: number; title: string }>
   // Publishers, not feeds: two BBC feeds are one source.
   sources: string[]
   title: string
@@ -42,6 +46,10 @@ export type EditionStory = {
 
 export type Edition = {
   clusterCount: number
+  // Stories more than one of the reader's publishers ran, kept off the front and out of the sections.
+  corroborated?: EditionStory[]
+  // The most-commented stories of the day, which may repeat ones shown elsewhere (a "most read" rail).
+  discussed?: EditionStory[]
   entryCount: number
   front: EditionStory[]
   generatedAt: string
@@ -56,6 +64,8 @@ export const FRONT_CATEGORY_CAP = 3
 export const SECTION_COUNT = 5
 export const SECTION_SIZE = 6
 export const SECTION_FEED_CAP = 2
+export const CORROBORATED_SIZE = 3
+export const DISCUSSED_SIZE = 5
 const EXCERPT_LENGTH = 220
 
 const STOP = new Set(
@@ -266,12 +276,21 @@ export const rankEdition = ({
       .filter((entry) => hackerNewsItemId(entry.commentsUrl))
       .sort((a, b) => (hnComments[String(b.id)] || 0) - (hnComments[String(a.id)] || 0))[0]
     const imageUrl = reading.imageUrl || lead.imageUrl || group.find((e) => Boolean(e.imageUrl))?.imageUrl
+    // The reading entry speaks for its own publisher; every other publisher is named by its first entry.
+    const sourceFeeds = publishers.map((publisher) => {
+      const entry =
+        publisherOf(reading) === publisher
+          ? reading
+          : group.find((candidate) => publisherOf(candidate) === publisher) || reading
+      return { feedId: entry.feedId, title: entry.feedTitle || publisher }
+    })
 
     return {
       category: lead.categoryTitle,
       comments,
       commentsUrl: discussion?.commentsUrl || reading.commentsUrl || lead.commentsUrl,
       excerpt: reading.excerpt,
+      feedId: reading.feedId,
       feedTitle: reading.feedTitle,
       id: reading.id,
       imageUrl,
@@ -279,6 +298,7 @@ export const rankEdition = ({
       publishedAt: reading.publishedAt,
       readingTime: reading.readingTime,
       score: recency * commentWeight * corroboration,
+      sourceFeeds,
       sources: publishers,
       title: decodeEntities(reading.title),
       url: reading.url,
@@ -306,6 +326,15 @@ export const rankEdition = ({
   }
 
   const front = take(stories, FRONT_SIZE, FRONT_FEED_CAP, FRONT_CATEGORY_CAP)
+  const corroborated = take(
+    stories.filter((story) => story.sources.length > 1),
+    CORROBORATED_SIZE,
+    FRONT_FEED_CAP,
+  )
+  const discussed = stories
+    .filter((story) => story.comments > 0 && story !== front[0])
+    .sort((a, b) => b.comments - a.comments)
+    .slice(0, DISCUSSED_SIZE)
 
   // The spike named one reader's five categories by hand; the general form is the reader's own categories,
   // busiest first.
@@ -331,6 +360,8 @@ export const rankEdition = ({
 
   return {
     clusterCount: stories.filter((story) => story.sources.length > 1).length,
+    corroborated: corroborated.map(strip),
+    discussed: discussed.map(strip),
     entryCount: entries.length,
     front: front.map(strip),
     generatedAt: new Date(now).toISOString(),

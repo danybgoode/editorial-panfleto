@@ -12,6 +12,44 @@ import { StoryImage } from './StoryImage'
 
 export const safeHref = (url: string) => (/^https?:\/\//i.test(url) ? url : undefined)
 
+export const sourceHref = (feedId: number) => `/tu-edicion/fuente/${feedId}`
+
+// A source's name links to its page; the arrow beside it opens the story at the publisher.
+export function SourceByline({
+  feedId,
+  feedTitle,
+  url,
+}: {
+  feedId?: number
+  feedTitle: string
+  url?: string
+}) {
+  const href = url ? safeHref(url) : undefined
+  return (
+    <span className="source-byline">
+      {feedId ? (
+        <Link className="source-byline__name" href={sourceHref(feedId)} prefetch={false}>
+          {feedTitle}
+        </Link>
+      ) : (
+        feedTitle
+      )}
+      {href && (
+        <a
+          aria-label={`Abrir en ${feedTitle}`}
+          className="source-byline__out"
+          href={href}
+          rel="noopener noreferrer"
+          target="_blank"
+          title="Abrir en el sitio original"
+        >
+          ↗
+        </a>
+      )}
+    </span>
+  )
+}
+
 export const formatAge = (publishedAt: string, now: number) => {
   const minutes = Math.max(0, Math.round((now - new Date(publishedAt).getTime()) / 60_000))
   if (Number.isNaN(minutes)) return ''
@@ -24,7 +62,21 @@ export function StorySignals({ story }: { story: EditionStory }) {
   const commentsHref = safeHref(story.commentsUrl)
   const reasons: React.ReactNode[] = []
 
-  if (story.sources.length > 1)
+  if (story.sourceFeeds && story.sourceFeeds.length > 1) {
+    reasons.push(
+      <React.Fragment key="sources">
+        {story.sourceFeeds.length} medios:{' '}
+        {story.sourceFeeds.map((source, index) => (
+          <React.Fragment key={source.feedId}>
+            {index > 0 && ', '}
+            <Link href={sourceHref(source.feedId)} prefetch={false}>
+              {source.title}
+            </Link>
+          </React.Fragment>
+        ))}
+      </React.Fragment>,
+    )
+  } else if (story.sources.length > 1)
     reasons.push(`${story.sources.length} medios: ${story.sources.join(', ')}`)
   if (story.comments > 0) {
     reasons.push(
@@ -70,7 +122,8 @@ export function StoryCard({
   showImage?: boolean
   showSummary?: boolean
   story: EditionStory
-  variant?: 'compact' | 'lead' | 'stream'
+  // list: a row with a small square picture on the right, at every width.
+  variant?: 'compact' | 'lead' | 'list' | 'stream'
 }) {
   const href = safeHref(story.url)
   const articleHref = story.id ? `/tu-edicion/articulo/${story.id}` : href
@@ -81,6 +134,7 @@ export function StoryCard({
         'editorial-card group',
         variant === 'lead' && 'editorial-card--lead',
         variant === 'stream' && 'editorial-card--stream',
+        variant === 'list' && 'editorial-card--list',
         className,
       )}
     >
@@ -116,21 +170,7 @@ export function StoryCard({
         </h2>
         {showSummary && story.excerpt && <p className="editorial-card__summary">{story.excerpt}</p>}
         <div className="editorial-byline">
-          <span>
-            {story.feedTitle}
-            {href && (
-              <a
-                aria-label={`Abrir en ${story.feedTitle}`}
-                className="ml-1 text-xs text-[var(--ep-muted)] hover:text-[var(--ep-ink)] hover:underline inline-block"
-                href={href}
-                rel="noopener noreferrer"
-                target="_blank"
-                title="Abrir fuente original"
-              >
-                ↗
-              </a>
-            )}
-          </span>
+          <SourceByline feedId={story.feedId} feedTitle={story.feedTitle} url={story.url} />
           <time dateTime={story.publishedAt}>{formatAge(story.publishedAt, now)}</time>
         </div>
         <StorySignals story={story} />

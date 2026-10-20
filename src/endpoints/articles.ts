@@ -1,7 +1,5 @@
 import type { Endpoint, Where } from 'payload'
 
-import { slugify } from '../utilities/editorial'
-
 const json = (body: unknown, status = 200) => Response.json(body, { status })
 
 const getRequestURL = (req: Parameters<Endpoint['handler']>[0]) =>
@@ -30,7 +28,6 @@ const articleSelect = {
  *   before   – ISO timestamp cursor (exclusive). First page: omit.
  *   limit    – number of articles (1–24, default 12)
  *   section  – section slug to filter
- *   source   – minifluxSourceTitle slug to filter
  */
 export const articlesEndpoints: Endpoint[] = [
   {
@@ -41,7 +38,6 @@ export const articlesEndpoints: Endpoint[] = [
         const url = getRequestURL(req)
         const before = url.searchParams.get('before')
         const sectionSlug = url.searchParams.get('section')
-        const sourceSlug = url.searchParams.get('source')
         const rawLimit = Number(url.searchParams.get('limit') ?? '12')
         const limit = Math.max(1, Math.min(rawLimit, 24))
 
@@ -69,57 +65,18 @@ export const articlesEndpoints: Endpoint[] = [
           where.push({ section: { equals: section.id } })
         }
 
-        // For source filtering: resolve the exact source title first (no select/where
-        // on named-tab fields to avoid Payload query issues), then do in-memory filter
-        // on the fetched articles page.
-        let sourceTitle: string | null = null
-        if (sourceSlug) {
-          const titlesSample = await req.payload.find({
-            collection: 'articles',
-            depth: 0,
-            limit: 2000,
-            overrideAccess: false,
-            pagination: false,
-          })
-          const getDocSourceTitle = (d: any): string | null =>
-            d.meta?.minifluxSourceTitle ?? d.minifluxSourceTitle ?? null
-
-          const matched = [
-            ...new Set(
-              titlesSample.docs
-                .map((d) => getDocSourceTitle(d))
-                .filter((t): t is string => Boolean(t)),
-            ),
-          ].find((t) => slugify(t) === sourceSlug)
-
-          if (!matched) {
-            return json({ articles: [], nextCursor: null })
-          }
-          sourceTitle = matched
-        }
-
-        // Fetch articles — for source pages we over-fetch and filter in memory
-        // because Payload where on named-tab fields can hang.
-        // When source filtering, skip the `select` so minifluxSourceTitle is returned.
-        const fetchLimit = sourceTitle ? Math.min(limit * 5, 120) : limit + 1
         const result = await req.payload.find({
           collection: 'articles',
           depth: 2,
-          limit: fetchLimit,
+          limit: limit + 1,
           overrideAccess: false,
           pagination: false,
-          ...(sourceTitle ? {} : { select: articleSelect }),
+          select: articleSelect,
           sort: '-publishedAt',
           where: where.length > 0 ? { and: where } : undefined,
         })
 
-        let docs = result.docs
-        if (sourceTitle) {
-          const getDocSourceTitle = (d: any): string | null =>
-            d.meta?.minifluxSourceTitle ?? d.minifluxSourceTitle ?? null
-          docs = docs.filter((d) => getDocSourceTitle(d) === sourceTitle)
-        }
-
+        const docs = result.docs
         const hasMore = docs.length > limit
         const articles = hasMore ? docs.slice(0, limit) : docs
         const lastArticle = articles[articles.length - 1]

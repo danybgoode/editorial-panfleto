@@ -11,7 +11,6 @@ import {
   getArticleHref,
   getSectionName,
   getSectionHref,
-  slugify,
   articleTypes,
 } from '@/utilities/editorial'
 
@@ -20,10 +19,8 @@ type Props = {
   initialArticles: Article[]
   /** ISO timestamp of the oldest initial article — used as the first cursor */
   initialCursor: string | null
-  /** Filter: section slug (exclusive of source) */
+  /** Filter: section slug */
   sectionSlug?: string
-  /** Filter: minifluxSourceTitle slug (exclusive of section) */
-  sourceSlug?: string
   /** Max per page */
   limit?: number
 }
@@ -126,7 +123,6 @@ export function InfiniteArticleList({
   initialArticles,
   initialCursor,
   sectionSlug,
-  sourceSlug,
   limit = 12,
 }: Props) {
   const [items, setItems] = useState<ListItem[]>(() =>
@@ -147,7 +143,6 @@ export function InfiniteArticleList({
     try {
       const params = new URLSearchParams({ limit: String(limit), before: cursor })
       if (sectionSlug) params.set('section', sectionSlug)
-      if (sourceSlug) params.set('source', sourceSlug)
 
       const res = await fetch(`/api/articles/stream?${params}`)
       if (!res.ok) throw new Error('Failed to load more articles')
@@ -171,7 +166,7 @@ export function InfiniteArticleList({
       loadingRef.current = false
       setLoading(false)
     }
-  }, [cursor, exhausted, limit, sectionSlug, sourceSlug])
+  }, [cursor, exhausted, limit, sectionSlug])
 
   // IntersectionObserver — triggers load when sentinel enters viewport
   useEffect(() => {

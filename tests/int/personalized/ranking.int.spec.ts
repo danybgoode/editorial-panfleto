@@ -193,3 +193,55 @@ describe('input the feeds can get wrong', () => {
     expect(decodeEntities('Q&amp;A &constructor; &#8217;')).toBe('Q&A &constructor; \u2019')
   })
 })
+
+describe('the redesigned front: source links, the multi-source band and the discussion rail', () => {
+  it('names one feed per publisher, so every outlet on a story links to its own page', () => {
+    const bbc = entry({
+      feedTitle: 'BBC News',
+      siteUrl: 'https://www.bbc.co.uk/news',
+      title: 'Coastal towns brace for the strongest storm in a decade',
+    })
+    const guardian = entry({
+      feedTitle: 'The Guardian',
+      siteUrl: 'https://www.theguardian.com/world',
+      title: 'Strongest storm in a decade: coastal towns brace',
+    })
+
+    const [story] = rank([bbc, guardian]).front
+    expect(story.feedId).toBe(story.id === bbc.id ? bbc.feedId : guardian.feedId)
+    expect(story.sourceFeeds).toEqual([
+      { feedId: bbc.feedId, title: 'BBC News' },
+      { feedId: guardian.feedId, title: 'The Guardian' },
+    ])
+  })
+
+  it('fills the band with multi-source stories the front left out, and never shows one twice', () => {
+    // Eight single-source stories fill the front first; the clustered one scores lower, being older.
+    const singles = Array.from({ length: 8 }, (_, index) =>
+      entry({ categoryTitle: ['News', 'Tech', 'Science'][index % 3], publishedAt: hoursAgo(0.5) }),
+    )
+    const a = entry({ publishedAt: hoursAgo(30), siteUrl: 'https://a.example', title: 'Ministers agree a new budget for the national rail network' })
+    const b = entry({ publishedAt: hoursAgo(30), siteUrl: 'https://b.example', title: 'New budget for the national rail network agreed by ministers' })
+
+    const edition = rank([...singles, a, b])
+    const band = edition.corroborated || []
+    expect(band.map((story) => story.sources.length)).toEqual([2])
+    const elsewhere = [...edition.front, ...edition.sections.flatMap((section) => section.stories)]
+    expect(elsewhere.some((story) => story.url === band[0].url)).toBe(false)
+  })
+
+  it('ranks the discussion rail by comments and leaves out the lead story', () => {
+    const lead = entry({ commentsUrl: 'https://news.ycombinator.com/item?id=1', publishedAt: hoursAgo(0) })
+    const quiet = entry({ commentsUrl: 'https://news.ycombinator.com/item?id=2', publishedAt: hoursAgo(8) })
+    const busy = entry({ commentsUrl: 'https://news.ycombinator.com/item?id=3', publishedAt: hoursAgo(9) })
+    const none = entry({ publishedAt: hoursAgo(1) })
+
+    const edition = rank([lead, quiet, busy, none], {
+      [String(lead.id)]: 900,
+      [String(quiet.id)]: 4,
+      [String(busy.id)]: 300,
+    })
+    expect(edition.front[0].id).toBe(lead.id)
+    expect((edition.discussed || []).map((story) => story.id)).toEqual([busy.id, quiet.id])
+  })
+})
