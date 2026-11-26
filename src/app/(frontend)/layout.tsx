@@ -4,6 +4,7 @@ import { cn } from '@/utilities/ui'
 import { GeistMono } from 'geist/font/mono'
 import { GeistSans } from 'geist/font/sans'
 import React from 'react'
+import Script from 'next/script'
 
 import { AdminBar } from '@/components/AdminBar'
 import { Footer } from '@/Footer/Component'
@@ -45,6 +46,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <main id="main-content">{children}</main>
           <Footer />
         </Providers>
+        {/* tally: first-party analytics (page views, Web Vitals, errors; no cookies, no IP). ~/dobby/tally */}
+        <Script
+          src="https://tally.goldenfrijoles.com/t.js"
+          data-site="editorial-panfleto"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   )
